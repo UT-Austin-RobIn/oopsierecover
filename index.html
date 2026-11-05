@@ -1,0 +1,1320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OopsieRecover</title>
+<meta name="description" content="OopsieRecover turns a handful of human corrections, each explained in one sentence, into gated costs that steer a frozen VLA in new poses and scenes.">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/logo/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/logo/favicon-180.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="OopsieRecover: Learning Transferable VLA Corrections from Semantic Interventions">
+<meta property="og:description" content="OopsieRecover turns a handful of human corrections, each explained in one sentence, into gated costs that steer a frozen VLA in new poses and scenes.">
+<meta property="og:image" content="assets/v/hero-ours.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --paper:#ffffff; --ink:#141414; --ink-2:#555555; --rule:#dcdcdc; --wash:#f7f7f5; --grid:#ececec;
+  --ours:#6a43ad; --ours-soft:#efe9f8;
+  --human:#d0601a; --human-text:#a64a0f;
+  --red:#b52e39;
+  --base:#a6aaac; --base-text:#6b7073;
+  --hgd:#7a5c42; --olaf:#cda780; --olaf-text:#8a6a3e; --vls:#565d61;
+  --scene:#e9e8e2; --scene-line:#8a9095;
+  --m-body:#f6f6f3; --m-shade:#e4e4de; --m-line:#7d848a; --m-dark:#2b2f33; --m-steel:#c3c7cb; --m-glass:#cfdde6; --m-coffee:#6b4632; --gingham:#e8b84a;
+  --body:"Helvetica Neue",Helvetica,Arial,sans-serif; /* text: Helvetica Light (300) */
+  --head:Helvetica,"Helvetica Neue",Arial,sans-serif; /* headings: Helvetica (400) */
+  --mono:Inconsolata,ui-monospace,Menlo,Consolas,monospace;
+  --col:720px; --wide:1280px; --nav:36px;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-padding-top:var(--nav)}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-weight:300;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+b,strong{font-weight:500}
+img,video,svg{max-width:100%}
+a{color:inherit;text-decoration-line:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+button{font:600 15px/1.2 var(--mono);color:inherit;background:transparent;border:1px solid currentColor;padding:4px 12px;cursor:pointer;border-radius:0}
+.m{font-family:var(--mono);font-weight:700;font-size:1.04em}
+.m.ours{color:var(--ours)} .m.human{color:var(--human-text)} .m.red{color:var(--red)} .m.base{color:var(--base-text)} .m.hgd{color:var(--hgd)}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.gut{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+
+/* ---------- nav: appears once the hero is passed ---------- */
+.toc{position:fixed;left:0;right:0;top:0;height:calc(var(--nav) + env(safe-area-inset-top,0px));padding-top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:24px;background:var(--paper);border-bottom:1px solid var(--rule);font:15px/1.3 var(--mono);visibility:hidden;opacity:0;transform:translateY(-100%);transition:opacity .16s ease,transform .16s ease}
+.toc.on{visibility:visible;opacity:1;transform:none}
+.toc-brand{flex:none;display:flex;align-items:center;text-decoration:none}
+.toc-brand img{height:30px;width:auto;display:block}
+.toc-links{display:flex;gap:clamp(12px,1.6vw,24px);list-style:none;margin:0 auto 0 0;padding:0;min-width:0;overflow-x:auto;scrollbar-width:none}
+.toc-links::-webkit-scrollbar{display:none}
+.toc-links a{display:flex;align-items:center;min-height:var(--nav);border-bottom:2px solid transparent;color:var(--ink-2);text-decoration:none;white-space:nowrap}
+.toc-links a:hover{color:var(--ink);border-bottom-color:var(--rule)}
+.toc-links a[aria-current="location"]{color:var(--ink);border-bottom-color:var(--ink);font-weight:700}
+.toc-paper{flex:none;white-space:nowrap}
+@media (max-width:760px){.toc-paper{display:none}.toc{gap:14px}.toc-brand{display:none}}
+
+/* ---------- hero ---------- */
+.hero{position:relative;height:clamp(600px,88svh,860px);overflow:hidden;background:#1f2423;color:#fff}
+.hero-stage{position:absolute;top:0;bottom:0;right:0;width:68%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%);mask-image:linear-gradient(90deg,transparent,#000 22%)}
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 50%;background:#1f2423}
+.overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(0deg,rgba(8,12,11,.8),transparent 26%,transparent 86%,rgba(8,12,11,.35))}
+.hero-text{position:absolute;z-index:2;left:max(20px,env(safe-area-inset-left,0px),4.5vw);top:calc(50% - 28px);transform:translateY(-50%);max-width:min(560px,88vw);text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.wordmark{margin:0 0 clamp(14px,2.4vh,26px);line-height:0}
+.wordmark img{display:block;width:clamp(320px,min(40vw,62vh),580px);height:auto;max-width:100%;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
+.hero .title{font-family:var(--head);font-weight:400;font-size:25px;line-height:1.22;letter-spacing:-.015em;margin:0 0 22px;max-width:460px}
+.hero .authors{display:flex;flex-wrap:wrap;gap:0 16px;font-size:15px;line-height:1.7;margin:0;color:#f2f5f3;font-weight:400}
+.hero .authors span,.hero .affils span{white-space:nowrap}
+.hero sup{font-size:.68em;line-height:0;margin-left:1px}
+.hero .affils{display:flex;flex-wrap:wrap;gap:0 16px;margin:6px 0 0;font-size:13px;color:#cbd3ce}
+.hero-foot{position:absolute;z-index:2;left:max(20px,4.5vw);right:max(20px,4.5vw);bottom:16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 18px;font:14px/1.4 var(--mono)}
+.hero-foot p{margin:0}
+.hero-foot .pause{padding:2px 10px;font-size:13px;color:#fff}
+.status{display:flex;align-items:center;gap:8px;min-height:22px}
+.status i{width:9px;height:9px;border-radius:50%;background:#aab1b5;flex:none;transition:background .2s}
+.status.on i{background:#c4a8ff;box-shadow:0 0 0 3px rgba(196,168,255,.25)}
+.status b{font-weight:700;color:#d9c8ff}
+.provenance{margin-left:auto!important;max-width:30em;text-align:right;color:#cbd3ce}
+.overlay .spot{fill:#05080a}
+.overlay .halo{fill:none;stroke:#0b0f12;stroke-width:10;stroke-linecap:round;opacity:.55}
+.overlay .arc{fill:none;stroke:#dfe3e6;stroke-width:4;stroke-linecap:round}
+.overlay .arc.rej{stroke:#ff8a7e}
+.overlay .arc.pick{stroke:#c9adff;stroke-width:5.5}
+.overlay .glow{fill:none;stroke:#b18cff;stroke-width:16;stroke-linecap:round;opacity:0;filter:blur(5px)}
+.overlay .head{stroke:none}
+.overlay .x circle{fill:#2a1d1c;stroke:#ff8a7e;stroke-width:2.2}
+.overlay .x path{stroke:#ff8a7e;stroke-width:2.4;stroke-linecap:round}
+.overlay .origin{fill:#f3f2ed;stroke:#0b0f12;stroke-width:2}
+.overlay text{font:600 14px/1 var(--mono);paint-order:stroke;stroke:#0b0f12;stroke-width:4px;stroke-linejoin:round}
+.overlay .lab-rej{fill:#ffb3aa}.overlay .lab-pick{fill:#dccbff}.overlay .lab-tag{fill:#fff}
+.overlay .tag-bg{fill:rgba(11,15,18,.82);stroke:rgba(255,255,255,.25)}
+@media (max-aspect-ratio:1/1){
+  .hero{height:auto;display:flex;flex-direction:column}
+  .hero::after{display:none}
+  .hero-text{position:relative;left:auto;top:auto;transform:none;max-width:none;padding:24px 20px 12px;order:1}
+  .hero-stage{position:relative;width:100%;aspect-ratio:16/9;order:2;-webkit-mask-image:linear-gradient(180deg,transparent,#000 22%);mask-image:linear-gradient(180deg,transparent,#000 22%)}
+  .hero-foot{position:relative;left:auto;right:auto;bottom:auto;padding:12px 20px 20px;order:3}
+  .provenance{margin-left:0!important;text-align:left}
+}
+@media (max-width:720px){.wordmark img{height:auto;width:100%;max-width:440px}.hero .title{font-size:19px;margin-bottom:14px}.hero .authors{font-size:13px}}
+
+/* ---------- sections ---------- */
+main{display:block;container:article/inline-size}
+.section{max-width:var(--wide);margin:0 auto;padding-block:clamp(32px,5vh,56px) 72px}
+.section+.section{border-top:1px solid var(--rule)}
+.section>h2,.section>h3,.section>p,.section>.kicker,.section>.narrow{max-width:var(--col);margin-left:auto;margin-right:auto}
+.section.wide{max-width:1440px}
+h2{font-family:var(--head);font-size:clamp(30px,3.1vw,46px);line-height:1.12;font-weight:400;letter-spacing:-.025em;margin:0 0 22px;text-wrap:balance}
+h3{font-family:var(--head);font-size:23px;line-height:1.3;font-weight:400;letter-spacing:-.015em;margin:48px 0 12px;text-wrap:balance}
+p{margin:0 0 18px}
+figure{margin:0}
+figcaption,.caption{font-size:15px;line-height:1.5;color:var(--ink-2)}
+.kicker{display:flex;align-items:center;gap:12px;margin-bottom:14px;font:400 14px/1.3 var(--mono);color:var(--ink-2)}
+.kicker .progress{display:inline-grid;grid-auto-flow:column;grid-auto-columns:20px;gap:3px}
+.kicker .progress i{height:3px;background:var(--rule)}
+.kicker .progress i.on{background:var(--ink)}
+.band{border-image:linear-gradient(var(--wash) 0 0) fill 0/0/0 100vmax}
+.section p+:is(figure,.pair,.panels){margin-top:clamp(28px,4vw,44px)}
+figcaption:has(>.replay){display:flex;align-items:baseline;gap:14px}
+figcaption:has(>.replay)>span{max-width:72ch}
+.replay{flex:none;margin:0;font-size:13px;padding:3px 10px;white-space:nowrap}
+.replay::before{content:"↺";margin-right:6px}
+figcaption:has(>.replay)>span{min-width:0}
+
+/* ---------- method animation ---------- */
+.method-anim{margin:8px auto 0;max-width:1180px}
+.mfig{display:block;width:100%;height:auto;font-family:var(--mono)}
+.mfig-tall{display:none;max-width:440px;margin:0 auto}
+@container article (max-width:919px){.mfig-wide{display:none}.mfig-tall{display:block}}
+.mfig text{fill:var(--ink)}
+.mfig .lab{font-size:14px}
+.mfig .note{font-size:13px;fill:var(--ink-2)}
+.mfig .tiny{font-size:12px;fill:var(--ink-2)}
+.mfig .box{fill:var(--paper);stroke:var(--rule);stroke-width:1}
+.mfig .boxtitle{font-size:13px;fill:var(--ink-2)}
+.mfig .part{transition:opacity .35s}
+.mfig .dim{opacity:.3}
+.mfig .table{stroke:var(--scene-line);stroke-width:1.4}
+.mfig .mbody{fill:var(--scene);stroke:var(--scene-line);stroke-width:1.2}
+.mfig .mslot{fill:var(--paper);stroke:var(--scene-line);stroke-width:1}
+.mfig .mlid{stroke:var(--scene-line);stroke-width:6;stroke-linecap:round}
+.mfig .pod{fill:#3c4a43;stroke:var(--paper);stroke-width:1.2}
+.mfig .grip{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.mfig .p-base{fill:none;stroke:var(--base);stroke-width:2.4;stroke-linecap:round}
+.mfig .p-pre{fill:none;stroke:var(--red);stroke-width:3;stroke-linecap:round}
+.mfig .p-human{fill:none;stroke:var(--human);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.mfig .p-ours{fill:none;stroke:var(--ours);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.mfig .bubble{fill:var(--paper);stroke:var(--human);stroke-width:1.4}
+.mfig .bubble-t{font-family:var(--body);font-size:13px;font-style:italic;fill:var(--ink)}
+.mfig .seed{fill:none;stroke:var(--ink);stroke-width:1.4}
+.mfig .pt{fill:var(--ink-2)}
+.mfig .pt.lid{fill:#4a6fa5} .mfig .pt.body{fill:#8a7a2e} .mfig .pt.holder{fill:var(--red)} .mfig .pt.pod{fill:#7a4f8f}
+.mfig .code{font-size:13.5px;fill:var(--ink)}
+.mfig .code .kw{fill:var(--ink-2)}
+.mfig .code .g{fill:var(--ours);font-weight:700}
+.mfig .code .c{fill:var(--red);font-weight:700}
+.mfig .code .t{fill:var(--ink);font-weight:700}
+.mfig .flash{fill:var(--human);opacity:0}
+.mfig .axis{stroke:var(--ink);stroke-width:1}
+.mfig .curve{fill:none;stroke:var(--ink);stroke-width:1.8}
+.mfig .win-pre{fill:var(--red);opacity:.1}
+.mfig .win-hum{fill:var(--human);opacity:.12}
+.mfig .tau{stroke:var(--ours);stroke-width:1.6;stroke-dasharray:5 4}
+.mfig .ok{fill:var(--ours);font-weight:700}
+.mfig .bad{fill:var(--red);font-weight:700}
+.mfig .flow{fill:none;stroke:var(--ink);stroke-width:1.3}
+.mfig .flow-on{stroke:var(--ink);stroke-width:2}
+.mfig .arrowhead{fill:var(--ink)}
+.mfig .cand{fill:none;stroke:var(--scene-line);stroke-width:1.6;stroke-linecap:round}
+.mfig .cand.rej{stroke:var(--red);stroke-dasharray:3 3}
+.mfig .cand.pick{stroke:var(--ours);stroke-width:3}
+.mfig .xmark circle{fill:var(--paper);stroke:var(--red);stroke-width:1.4}
+.mfig .xmark path{stroke:var(--red);stroke-width:1.6;stroke-linecap:round}
+.mfig .gauge{fill:var(--rule)}
+.mfig .gauge-on{fill:var(--ours)}
+.mfig .needle{stroke:var(--ink);stroke-width:1.6}
+.m-shadow{fill:#000;opacity:.07}
+.m-base,.m-head{fill:var(--m-body);stroke:var(--m-line);stroke-width:1.1}
+.m-tower{fill:var(--m-shade);stroke:var(--m-line);stroke-width:1.1}
+.m-headshade{fill:var(--m-shade);opacity:.75}
+.m-open{fill:var(--m-dark)}
+.m-seam{fill:none;stroke:var(--m-line);stroke-width:1;opacity:.35}
+.m-steel{fill:var(--m-steel);stroke:var(--m-line);stroke-width:1}
+.m-hi{stroke:#ffffff;stroke-width:1.6;opacity:.85;fill:none;stroke-linecap:round}
+.m-glass{fill:var(--m-glass);fill-opacity:.55;stroke:#8fa0ac;stroke-width:1.1}
+.m-coffee{fill:var(--m-coffee);opacity:.8}
+.m-handle{fill:none;stroke:var(--m-dark);stroke-width:4.5;stroke-linecap:round}
+.m-panel{fill:var(--m-dark)} .m-led{fill:#d64545}
+.m-lid{fill:var(--m-body);stroke:var(--m-line);stroke-width:1.1}
+.m-lidgrip{fill:var(--m-dark)}
+.pod-cup{fill:#8a5a3c;stroke:#5b3a26;stroke-width:.8}
+.pod-lid{fill:#2f8f5b}
+.op-hair{fill:#3a2a24}.op-skin{fill:#e3b08e;stroke:#a87457;stroke-width:.9}
+.op-shirt{fill:#f4d9c3;stroke:var(--human-text);stroke-width:1}.op-collar{fill:none;stroke:var(--human-text);stroke-width:1}
+.op-arm{fill:none;stroke:#f4d9c3;stroke-width:9;stroke-linecap:round;stroke-linejoin:round}
+.op-armline{fill:none;stroke:var(--human-text);stroke-width:11;stroke-linecap:round;stroke-linejoin:round}
+.op-mouth{fill:#8a3b2e}
+.vr-shell{fill:#f3f3f1;stroke:#7d848a;stroke-width:.9}
+.vr-under{fill:#d9dbdc}
+.vr-seal{fill:#2b2f33}
+.vr-cam{fill:#2b2f33}
+.vr-strap{fill:#5b6168;stroke:#3a3f45;stroke-width:.6}
+.vr-shade{fill:#000;opacity:.12}
+.ct-ringo{fill:none;stroke:#7d848a;stroke-width:4.4}
+.ct-ring{fill:none;stroke:#f3f3f1;stroke-width:2.8}
+.ct-body{fill:#f3f3f1;stroke:#7d848a;stroke-width:.8}
+.ct-face{fill:#e4e5e6;stroke:#7d848a;stroke-width:.7}
+.ct-stick{fill:#2b2f33}.ct-btn{fill:#5b6168}
+.ct-led{fill:var(--human)}
+.mfig .teleop{fill:none;stroke:var(--human);stroke-width:1.3;stroke-dasharray:3 4}
+.g-link{fill:#ecebe6;stroke:var(--m-line);stroke-width:1}
+.g-flange{fill:#3a3f45} .g-hand{fill:#2b2f33} .g-finger{fill:#4b5158}
+.tbl-line{stroke:#b9a46a;stroke-width:1.4}
+.tbl-plain{fill:#f1f1ee}.ghost{fill:none;stroke:var(--ink-2);stroke-width:1.2;stroke-dasharray:4 4}.ghost-arrow{stroke:var(--ink-2);stroke-width:1.4;fill:none}.tbl-plain-line{stroke:#c9c9c4;stroke-width:1.4}
+.mfig .lvl{font-weight:700;fill:var(--ours)}
+.b-tower{fill:#3a3f45;stroke:#1e2124;stroke-width:1.1}
+.b-base,.b-head{fill:#24282c;stroke:#111315;stroke-width:1.1}
+.b-led{fill:#4fb3e8}
+.b-open{fill:#0d0f10;stroke:#5a6067;stroke-width:1}
+.b-lid{fill:#2b2f33;stroke:#111315;stroke-width:1.1}
+.b-lidrim{fill:#9aa0a6}
+.method-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr)) auto;gap:6px;align-items:end;max-width:1180px;margin:18px auto 0}
+.method-step{border:0;padding:6px 0 0;text-align:left;font:400 14px/1.3 var(--mono);color:var(--ink-2)}
+.method-step[aria-current="step"]{color:var(--ink);font-weight:700}
+.method-step .prog{display:block;height:3px;margin-top:6px;background:var(--rule);position:relative;overflow:hidden}
+.method-step .prog i{position:absolute;inset:0 auto 0 0;width:0;background:var(--ink)}
+.method-pause{margin-left:10px;font-size:14px}
+.section>p.method-caption{max-width:1180px;margin:14px auto 0;min-height:4.9em}
+@media (max-width:600px){.method-step .n{display:none}.method-steps{grid-template-columns:repeat(3,minmax(0,1fr)) auto}.method-pause{grid-column:4;grid-row:1/span 2;align-self:center;margin-left:6px}.method-caption{min-height:7.5em;font-size:16px}}
+.onrobot{max-width:1180px;margin:40px auto 0;border-top:1px solid var(--rule);padding-top:22px}
+.onrobot h3{margin:0 0 14px;font:700 15px/1.3 var(--mono)}
+.onrobot>p{color:var(--ink-2);font-size:15px;margin-bottom:14px}
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.strip figcaption{font:14px/1.35 var(--mono);color:var(--ink);margin-top:6px}
+.strip figcaption span{display:block;color:var(--ink-2);font-size:13px}
+@container article (max-width:860px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---------- media shells + dialog ---------- */
+.shot{position:relative;background:#0b0d12}
+.shot video,.shot img{display:block;width:100%;height:auto}
+.shot.sq video{aspect-ratio:1/1;object-fit:cover;object-position:top}
+.open{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;background:transparent;cursor:zoom-in}
+.open span{position:absolute;bottom:8px;right:8px;display:grid;place-items:center;width:30px;height:30px;background:#ffffffed;color:#141414;font:20px/1 var(--mono)}
+.verdict{position:absolute;left:8px;bottom:8px;font:700 12px/1 var(--mono);padding:4px 6px;background:#141414d9;color:#fff;letter-spacing:.02em}
+.verdict.ok{color:#d9c8ff} .verdict.bad{color:#ffb3a9}
+dialog.vd{width:min(1120px,calc(100vw - 40px));max-width:none;max-height:calc(100dvh - 32px);padding:20px;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}
+dialog.vd::backdrop{background:#080b10d9}
+.vd-head{display:flex;align-items:start;justify-content:space-between;gap:20px;margin-bottom:14px}
+.vd h2{margin:0;font-size:clamp(18px,2.4vw,26px);line-height:1.3}
+.vd video{display:block;width:100%;max-height:calc(100dvh - 180px);background:#0b0d12}
+
+/* ---------- rounds: corrections collected one per round ---------- */
+.rounds{max-width:1180px;margin-inline:auto}
+.rounds-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:14px/1.3 var(--mono);color:var(--ink-2);margin-bottom:12px}
+.rounds-head b{color:var(--ink)}
+.rounds-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:start}
+.round{display:grid;gap:7px;align-content:start;min-width:0;transition:opacity .3s}
+.round.wait{opacity:.28}
+.round h3{margin:0;font:700 14px/1.25 var(--mono);display:flex;justify-content:space-between;gap:6px}
+.round h3 span{font-weight:400;color:var(--ink-2);font-size:12px}
+.round.final h3{color:var(--ours)}
+.round svg{display:block;width:100%;height:auto;background:var(--wash)}
+.round .using{display:flex;flex-wrap:wrap;gap:4px;min-height:20px;font:12px/1 var(--mono);color:var(--ink-2);align-items:center}
+.chip{display:inline-flex;align-items:center;height:20px;padding:0 6px;border:1px solid var(--ours);color:var(--ours);background:var(--paper);font:600 12px/1 var(--mono);border-radius:3px;white-space:nowrap}
+.chip.on{background:var(--ours);color:#fff}
+.round .said-r{margin:0;font:italic 14px/1.35 var(--body);border-left:3px solid var(--human);padding:4px 8px;background:var(--wash);min-height:3.2em;transition:opacity .3s}
+.round .said-r.ok{border-left-color:var(--ours);font:600 13px/1.35 var(--mono);color:var(--ours)}
+.round .learn{margin:0;font:12px/1.3 var(--mono);color:var(--ink-2);display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;white-space:nowrap;transition:opacity .3s}
+.lib{margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 12px;border:1px solid var(--rule);font:13px/1.3 var(--mono);color:var(--ink-2)}
+.lib b{color:var(--ink);font-weight:600;margin-right:4px}
+.lib .chip{transition:opacity .3s,transform .3s}
+.lib .chip.off{opacity:.25}
+.rounds .trace{fill:none;stroke:var(--base);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.rounds .trace.st{stroke:var(--ours);stroke-width:2.8}
+.rounds .trace.hum{stroke:var(--human);stroke-width:2.8}
+.rounds .start{fill:var(--paper);stroke:var(--ink);stroke-width:1.2}
+.rounds .hit circle{fill:var(--paper);stroke:var(--red);stroke-width:1.4}
+.rounds .hit path{stroke:var(--red);stroke-width:1.6;stroke-linecap:round}
+.rounds .ok circle{fill:var(--ours)}
+.rounds .ok path{stroke:#fff;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.rounds .ghost{fill:none;stroke:var(--ink-2);stroke-width:.9;stroke-dasharray:3 3;opacity:.6}
+.rounds .tag{font:600 9.5px var(--mono);fill:var(--ours)}
+.rounds .tag.hum{fill:var(--human-text)}
+.rounds figcaption{margin-top:14px}
+@container article (max-width:1000px){.rounds-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 16px}}
+@container article (max-width:560px){.rounds-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.premise{max-width:var(--col);margin:clamp(36px,5vh,56px) auto 0}
+
+/* ---------- charts ---------- */
+.chart{display:block;width:100%;height:auto;font-family:var(--mono);overflow:visible}
+.chart .grid{stroke:var(--grid)}
+.chart .baseline{stroke:var(--ink)}
+.chart .tick{font-size:13px;fill:var(--ink-2)}
+.chart .axis-label{font-size:13px;fill:var(--ink)}
+.chart .mlabel{font-size:13.5px;fill:var(--ink)}
+.chart .vlabel{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.chart .cld{font-size:12px;fill:var(--ink-2);font-style:italic}
+.chart .line{fill:none;stroke-width:2.2;stroke-linejoin:round}
+.chart .ptc{fill:var(--paper);stroke-width:1.6}
+.chart .end-label{font-size:13px;font-weight:700;paint-order:stroke;stroke:var(--paper);stroke-width:4px;stroke-linejoin:round}
+.panels{display:grid;gap:20px 32px}
+.panels.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@container article (max-width:900px){.panels.cols-3{grid-template-columns:1fr}}
+.panel h4{margin:0 0 2px;font:700 15px/1.3 var(--mono)}
+.panel h4 span{font-weight:400;color:var(--ink-2)}
+.key{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;font:14px var(--mono)}
+.key li{display:flex;align-items:center;gap:6px}
+.key i{width:14px;height:10px;background:var(--c)}
+.afig{max-width:var(--wide);margin:0 auto}
+.afig figcaption{margin-top:14px}
+
+.tasks{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 28px;margin:0 auto 26px;max-width:var(--wide)}
+.task{display:flex;align-items:center;gap:12px}
+.thumb{position:relative;flex:none;width:64px;height:64px;outline:1px solid var(--rule);border-radius:3px}
+.thumb .pv{position:absolute;left:0;top:0;z-index:1;width:240px;height:240px;overflow:hidden;border-radius:12px;background:#0b0d12;transform:scale(.266667);transform-origin:0 0;transition:transform .24s cubic-bezier(.4,0,.2,1),z-index 0s .24s}
+.thumb .pv img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb:hover .pv,.thumb:focus-within .pv{z-index:6;transform:none;transition:transform .36s cubic-bezier(.16,1,.3,1),z-index 0s}
+.task p{margin:0;font-size:14px;line-height:1.3}
+.task p b{display:block;font-weight:600}
+.task p span{font:13px var(--mono);color:var(--ink-2)}
+
+.transfer{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1.4fr);gap:24px;align-items:start;max-width:var(--wide);margin:44px auto 0;border-top:1px solid var(--rule);padding-top:28px}
+.transfer h3{margin:0 0 10px}
+.transfer p{font-size:16px}
+.transfer figcaption{font:14px var(--mono);color:var(--ink);margin-top:6px}
+@container article (max-width:900px){.transfer{grid-template-columns:1fr}}
+
+/* ---------- film band (real robot) ---------- */
+.film{--paper:#131817;--ink:#eceeea;--ink-2:#a8afab;--rule:#313735;--wash:#1b201f;--grid:#262c2a;--ours:#b49cf0;--ours-soft:#2a2340;--human:#f08a48;--human-text:#f3a26c;--red:#f06d75;--base:#858c90;--base-text:#a3aaae;--hgd:#b08d6e;color:var(--ink);background-color:var(--paper);border-image:linear-gradient(var(--paper) 0 0) fill 0/0/0 100vmax}
+.section.film+.section{border-top:0}
+.section+.section.film{border-top:0}
+.experiment{max-width:var(--wide);margin:44px auto 0;border-top:1px solid var(--rule);padding-top:28px}
+.experiment>h3{margin:0 0 8px}
+.experiment>p{max-width:900px}
+.exp-row{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(260px,.9fr);gap:20px 32px;align-items:start}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.trio figcaption{margin-top:6px;font:15px var(--mono);color:var(--ink)}
+.side{display:grid;gap:16px;align-content:start}
+.said{display:grid;gap:6px}
+.said .lbl,.levels .lbl{font:13px var(--mono);color:var(--ink-2)}
+.said q{display:block;quotes:"“" "”";font-size:15px;line-height:1.4;padding:6px 10px;border-left:3px solid var(--human);background:var(--wash)}
+.levels .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px}
+.levels figure img{aspect-ratio:3/4;object-fit:cover;width:100%;display:block}
+.levels figcaption{font:12px var(--mono);color:var(--ink-2);margin-top:3px}
+@container article (max-width:1000px){.exp-row{grid-template-columns:1fr}}
+@container article (max-width:640px){.trio{gap:6px}.trio figcaption{font-size:13px}.verdict{font-size:10px;left:4px;bottom:4px}.open span{width:24px;height:24px;font-size:16px;right:4px;bottom:4px}}
+.stat{display:grid;text-align:right;color:var(--ink-2)}
+.stat>span{grid-area:1/1;opacity:0;transition:opacity .24s}
+.stat>span.on{opacity:1}
+.stat .good{color:var(--ours)} .stat .bad{color:var(--red)}
+
+.bib{position:relative;max-width:var(--col);margin:0 auto}
+.bib pre{margin:0;font:14px/1.55 var(--mono);border:1px solid var(--rule);padding:16px 76px 16px 18px;overflow-x:auto;white-space:pre-wrap;overflow-wrap:break-word}
+.bib button{position:absolute;top:10px;right:10px;background:var(--paper)}
+footer{border-top:1px solid var(--rule);font:14px var(--mono);color:var(--ink-2);padding-block:22px 40px}
+footer div{max-width:var(--wide);margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px}
+@media (prefers-reduced-motion:reduce){.toc,.thumb .pv,.stat>span,.mfig .part{transition:none}}
+</style>
+</head>
+<body>
+
+<nav class="toc gut" aria-label="Contents">
+  <a class="toc-brand" href="#hero"><img src="assets/logo/logo-compact-light.svg" alt="OopsieRecover" width="694" height="192"></a>
+  <ol class="toc-links">
+    <li><a href="#method">Method</a></li>
+    <li><a href="#why">Rounds</a></li>
+    <li><a href="#sim">Simulation</a></li>
+    <li><a href="#robot">Real robot</a></li>
+    <li><a href="#cite">Citation</a></li>
+  </ol>
+  <a class="toc-paper" href="assets/OopsieRecover.pdf" target="_blank" rel="noopener">Paper (PDF) <span aria-hidden="true">↗</span></a>
+</nav>
+
+<header class="hero" id="hero">
+  <div class="hero-stage">
+    <video class="hero-video" muted playsinline loop autoplay preload="auto" src="assets/v/hero-ours.mp4" poster="assets/v/hero-ours.jpg" aria-label="A Franka arm with OopsieRecover picks up a coffee pod and loads it into the coffee maker; corrections steer it near the machine."></video>
+    <svg class="overlay" aria-hidden="true"></svg>
+  </div>
+  <div class="hero-text">
+    <h1 class="wordmark"><img src="assets/logo/logo-dark.svg" alt="OopsieRecover" width="694" height="248"></h1>
+    <p class="title">Learning transferable VLA corrections from semantic interventions</p>
+    <p class="authors"><span>Arpit Bahety<sup>1,*</sup></span> <span>Skand Peri<sup>1,*</sup></span> <span>Sriniket Ambatipudi<sup>1</sup></span> <span>Chen Xu<sup>2</sup></span> <span>Haruki Nishimura<sup>2</sup></span> <span>Masha Itkina<sup>2</sup></span> <span>Roberto Martín-Martín<sup>1</sup></span></p>
+    <p class="affils"><span><sup>1</sup>The University of Texas at Austin</span> <span><sup>2</sup>Toyota Research Institute</span> <span><sup>*</sup>Equal contribution</span></p>
+  </div>
+  <div class="hero-foot">
+    <button class="pause" type="button" aria-pressed="false">Pause</button>
+    <p class="status" aria-live="polite"><i></i><span>π<sub>0.5</sub> acting on its own</span></p>
+    <p class="provenance">Real run at 1×, paused once at the first correction. The status follows the steering labels logged during this run; the arcs are drawn to illustrate the choice.</p>
+  </div>
+</header>
+
+<main>
+<!-- ================= METHOD ================= -->
+<section class="section band gut" id="method" aria-labelledby="method-title">
+  <p class="kicker">Method<span class="progress" role="img" aria-label="Part 1 of 4"><i class="on"></i><i></i><i></i><i></i></span></p>
+  <h2 id="method-title">How OopsieRecover works</h2>
+  <figure class="method-anim">
+    <svg class="mfig mfig-wide" viewBox="0 0 1000 470" role="img" aria-label="OopsieRecover in six steps. A human corrects the robot and says why. The relevant objects are grounded as point sets. A VLM writes a gated cost. Its threshold is calibrated from the moment before the takeover. The cost is checked against what the human did and refined. In a new scene, the cost fires near the machine and picks the sampled action chunk with the lowest predicted cost."></svg>
+    <svg class="mfig mfig-tall" viewBox="0 0 420 960" role="img" aria-label="OopsieRecover in six steps, drawn top to bottom: intervene, ground, propose a gated cost, calibrate its threshold, verify and refine, and steer in a new scene."></svg>
+  </figure>
+  <div class="method-steps" role="group" aria-label="Steps of the animation"></div>
+  <p class="method-caption" aria-live="polite"></p>
+
+  <div class="onrobot">
+    <h3>OopsieRecover on a real-robot example</h3>
+    <div class="strip">
+      <figure><div class="shot"><video muted playsinline loop preload="none" data-src="assets/v/collect-round1.mp4" poster="assets/v/collect-round1.jpg" id="v-r1" aria-label="Round 1: base policy, then a human correction"></video><button class="open" data-open="v-r1" data-title="Round 1: π0.5 acts, then a human takes over" aria-label="Open larger: round 1"><span aria-hidden="true">↗</span></button></div><figcaption>Intervene<span>π0.5 (cyan), then the human (orange)</span></figcaption></figure>
+      <figure><div class="shot"><video muted playsinline loop preload="none" data-src="assets/v/tracking-pointsets.mp4" poster="assets/v/tracking-pointsets.jpg" id="v-tr" aria-label="Point sets tracked during the correction"></video><button class="open" data-open="v-tr" data-title="Point sets on the lid, body, filter holder and pod, tracked through the correction" aria-label="Open larger: tracking"><span aria-hidden="true">↗</span></button></div><figcaption>Ground and track<span>lid, body, holder, pod</span></figcaption></figure>
+      <figure><div class="shot"><video muted playsinline loop preload="none" data-src="assets/v/collect-round2.mp4" poster="assets/v/collect-round2.jpg" id="v-r2" aria-label="Round 2: steered policy, then a new correction"></video><button class="open" data-open="v-r2" data-title="Round 2: the first correction steers (green); a new one is added" aria-label="Open larger: round 2"><span aria-hidden="true">↗</span></button></div><figcaption>Steer, then correct again<span>“Open gripper once pod is over the filter holder”</span></figcaption></figure>
+      <figure><div class="shot"><video muted playsinline loop preload="none" data-src="assets/v/after-5-rounds.mp4" poster="assets/v/after-5-rounds.jpg" id="v-r5" aria-label="After five rounds"></video><button class="open" data-open="v-r5" data-title="After five rounds: steering switches on only where a correction applies" aria-label="Open larger: after five rounds"><span aria-hidden="true">↗</span></button></div><figcaption>After 5 rounds<span>steering only where needed</span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WHY ================= -->
+<section class="section gut" id="why" aria-labelledby="why-title">
+  <p class="kicker" id="why-title">Improving round by round<span class="progress" role="img" aria-label="Part 2 of 4"><i class="on"></i><i class="on"></i><i></i><i></i></span></p>
+  <figure class="rounds" aria-describedby="rounds-cap">
+    <div class="rounds-head"><span>Load Coffee Pod · one correction per round</span><span id="roundNow">round 1 of 3</span></div>
+    <div class="rounds-grid"></div>
+    <div class="lib" aria-label="Correction library"><b>Correction library</b></div>
+    <figcaption id="rounds-cap"><button type="button" class="replay" id="roundsReplay" aria-label="Replay the rounds">Replay</button><span>Illustration of the collection loop. In each round π<sub>0.5</sub> runs steered by every program learned so far (purple), fails somewhere new (✕), and the human fixes that moment and says why (orange). The three sentences are the coffee-pod correction types shown in the experiment videos.</span></figcaption>
+  </figure>
+
+  <div class="premise">
+    <p>On CoffeeMug in simulation, OopsieRecover gets one annotated correction per round and HG-DAgger* gets ten. On 25 held-out scenes with new poses, OopsieRecover reaches 84% after 8 corrections; HG-DAgger* is at 28% after 30.</p>
+    <figure class="afig">
+      <svg class="chart" id="lineChart" role="img" aria-label="Success rate against number of corrections on CoffeeMug. OopsieRecover rises from 4% to 88% at 8 corrections and stays between 72% and 80% up to 30. HG-DAgger* is at 0% after 10, 16% after 20 and 28% after 30."></svg>
+      <figcaption><button type="button" class="replay" id="lineReplay" aria-label="Replay the chart">Replay</button><span>Success rate on CoffeeMug, L1 test scenes.</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= SIMULATION ================= -->
+<section class="section wide gut" id="sim" aria-labelledby="sim-title">
+  <p class="kicker">Simulation<span class="progress" role="img" aria-label="Part 3 of 4"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></p>
+  <h2 id="sim-title">Corrections that hold in new poses and new kitchens</h2>
+  <p>Three RoboCasa tasks, π<sub>0.5</sub> fine-tuned on the full RoboCasa dataset, 5–8 corrections per task. L0 repeats the state where corrections were collected, L1 moves the objects, L2 moves them into unseen scenes. Only <b class="m ours">OopsieRecover</b> keeps working past L0.</p>
+  <div class="tasks">
+    <div class="task"><div class="thumb" tabindex="0" aria-label="Enlarge CoffeeMugSetup preview"><div class="pv"><img src="assets/img/sim-coffeemug_init.jpg" alt="CoffeeMugSetup in RoboCasa" loading="lazy"></div></div><p><b>Put the mug under the coffee machine</b><span>CoffeeMugSetup</span></p></div>
+    <div class="task"><div class="thumb" tabindex="0" aria-label="Enlarge BlenderLid preview"><div class="pv"><img src="assets/img/sim-blender.jpg" alt="BlenderLid in RoboCasa" loading="lazy"></div></div><p><b>Put the lid on the blender</b><span>BlenderLid</span></p></div>
+    <div class="task"><div class="thumb" tabindex="0" aria-label="Enlarge StartKettle preview"><div class="pv"><img src="assets/img/sim-kettle.jpg" alt="StartKettle in RoboCasa" loading="lazy"></div></div><p><b>Switch on the kettle</b><span>StartKettle</span></p></div>
+  </div>
+  <figure class="afig" id="simFig">
+    <ul class="key" aria-label="Methods">
+      <li style="--c:var(--base)"><i></i>π0.5</li>
+      <li style="--c:var(--hgd)"><i></i>HG-DAgger*</li>
+      <li style="--c:var(--olaf)"><i></i>OLAF</li>
+      <li style="--c:var(--vls)"><i></i>VLS</li>
+      <li style="--c:var(--ours)"><i></i>OopsieRecover</li>
+    </ul>
+    <div class="panels cols-3">
+      <div class="panel"><h4>L0 <span>same state</span></h4><svg class="chart" data-set="sim" data-lvl="L0" role="img" aria-label="Simulation L0 success: π0.5 6%, HG-DAgger* 40%, OLAF 9%, VLS 1%, OopsieRecover 50%."></svg></div>
+      <div class="panel"><h4>L1 <span>new poses</span></h4><svg class="chart" data-set="sim" data-lvl="L1" role="img" aria-label="Simulation L1 success: π0.5 2%, HG-DAgger* 3%, OLAF 1%, VLS 1%, OopsieRecover 32%."></svg></div>
+      <div class="panel"><h4>L2 <span>new poses and scenes</span></h4><svg class="chart" data-set="sim" data-lvl="L2" role="img" aria-label="Simulation L2 success: π0.5 5%, HG-DAgger* 1%, OLAF 1%, VLS 2%, OopsieRecover 15%."></svg></div>
+    </div>
+    <figcaption><button type="button" class="replay" data-replay="simFig" aria-label="Replay the simulation charts">Replay</button><span>Zero-shot success, pooled over three tasks, 50 episodes per method. Letters mark groups that are statistically separate (<a href="https://arxiv.org/abs/2503.10966" target="_blank" rel="noopener">STEP</a>, 95%); a shared letter means no significant difference.</span></figcaption>
+  </figure>
+
+  <div class="transfer">
+    <div>
+      <h3>One correction, ten new scenes</h3>
+      <p>From a single episode of <q>avoid colliding with the steam handle</q>, the robot was driven at the handle in 10 unseen scenes. The detector fired every time, and steering prevented the collision over 100 steps.</p>
+    </div>
+    <figure><div class="shot"><video muted playsinline loop preload="none" data-src="assets/v/sim-collection.mp4" poster="assets/v/sim-collection.jpg" id="v-sc" aria-label="Collecting the correction in simulation"></video><button class="open" data-open="v-sc" data-title="CoffeeMug: collecting the correction (base policy, then human), with tracked point sets" aria-label="Open larger: collecting the correction"><span aria-hidden="true">↗</span></button></div><figcaption>Collecting the correction</figcaption></figure>
+    <figure><div class="shot"><video muted playsinline loop preload="none" data-src="assets/v/sim-steering.mp4" poster="assets/v/sim-steering.jpg" id="v-ss" aria-label="Correction detection and steering in a new scene"></video><button class="open" data-open="v-ss" data-title="A new scene: live correction detection (right) and steering (green frame)" aria-label="Open larger: steering in a new scene"><span aria-hidden="true">↗</span></button></div><figcaption>Detection and steering in a new scene</figcaption></figure>
+  </div>
+</section>
+
+<!-- ================= REAL ROBOT (film) ================= -->
+<section class="section film wide gut" id="robot" aria-labelledby="robot-title">
+  <p class="kicker">Real robot<span class="progress" role="img" aria-label="Part 4 of 4"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></p>
+  <h2 id="robot-title">Steering a frozen π<sub>0.5</sub> on a real robot</h2>
+  <p>DROID hardware with the official π<sub>0.5</sub> DROID checkpoint, three to six corrections per task. Pooled over three tasks, <b class="m ours">OopsieRecover</b> raises task progress from 35% to 61%. <b class="m hgd">HG-DAgger*</b> fine-tunes on the same interventions and does worse than the base policy.</p>
+  <figure class="afig" id="realFig">
+    <ul class="key" aria-label="Methods">
+      <li style="--c:var(--base)"><i></i>π0.5</li>
+      <li style="--c:var(--hgd)"><i></i>HG-DAgger*</li>
+      <li style="--c:var(--ours)"><i></i>OopsieRecover</li>
+    </ul>
+    <div class="panels cols-3">
+      <div class="panel"><h4>L0 <span>same state</span></h4><svg class="chart" data-set="real" data-lvl="L0" role="img" aria-label="Real-world L0 task progress: π0.5 36%, HG-DAgger* 14%, OopsieRecover 67%."></svg></div>
+      <div class="panel"><h4>L1 <span>new poses</span></h4><svg class="chart" data-set="real" data-lvl="L1" role="img" aria-label="Real-world L1 task progress: π0.5 36%, HG-DAgger* 12%, OopsieRecover 58%."></svg></div>
+      <div class="panel"><h4>L2 <span>new poses and scene</span></h4><svg class="chart" data-set="real" data-lvl="L2" role="img" aria-label="Real-world L2 task progress: π0.5 34%, HG-DAgger* 7%, OopsieRecover 58%."></svg></div>
+    </div>
+    <figcaption><button type="button" class="replay" data-replay="realFig" aria-label="Replay the real-world charts">Replay</button><span>Mean task progress (fraction of stages completed), 20 rollouts per method, task and level. Letters from the <a href="https://arxiv.org/abs/2603.13616" target="_blank" rel="noopener">NSCORE</a> sequential test (95%).</span></figcaption>
+  </figure>
+
+  <article class="experiment" data-task="croffle" aria-labelledby="t-croffle">
+    <h3 id="t-croffle">Put Croffle: put the croissant on the waffle maker</h3>
+    <p>π<sub>0.5</sub> reaches for the purple cup instead. HG-DAgger* picks up the croissant and drops it beside the waffle maker.</p>
+    <div class="exp-row">
+      <div class="trio"></div>
+      <div class="side">
+        <div class="said"><span class="lbl">Corrections active in this run</span><q>Move towards the croissant</q><q>Don’t open gripper if croissant is not on top of toaster</q><q>Let go of croissant when near toaster base</q></div>
+        <div class="levels"><span class="lbl">Evaluated at</span><div class="row"></div></div>
+      </div>
+    </div>
+  </article>
+  <article class="experiment" data-task="shelve" aria-labelledby="t-shelve">
+    <h3 id="t-shelve">Shelve Item: put the mug on the shelf</h3>
+    <p>The shelf also holds a wine glass and a bottle. Both baselines fail; the correction keeps the arm away from the fragile objects while placing.</p>
+    <div class="exp-row">
+      <div class="trio"></div>
+      <div class="side">
+        <div class="said"><span class="lbl">Correction active in this run</span><q>Move away from fragile objects</q></div>
+        <div class="levels"><span class="lbl">Evaluated at</span><div class="row"></div></div>
+      </div>
+    </div>
+  </article>
+  <article class="experiment" data-task="coffeepod" aria-labelledby="t-coffeepod">
+    <h3 id="t-coffeepod">Load Coffee Pod: drop the pod in the filter holder and close the lid</h3>
+    <p>π<sub>0.5</sub> never secures the pod. HG-DAgger* lifts it but does not complete the placement.</p>
+    <div class="exp-row">
+      <div class="trio"></div>
+      <div class="side">
+        <div class="said"><span class="lbl">Corrections active in this run</span><q>Avoid colliding the pod with the coffee machine lid and body</q><q>Open the gripper once the pod is over the filter holder</q></div>
+        <div class="levels"><span class="lbl">Evaluated at</span><div class="row"></div></div>
+      </div>
+    </div>
+  </article>
+</section>
+
+
+
+<!-- ================= CITATION ================= -->
+<section class="section gut" id="cite" aria-labelledby="cite-title">
+  <h2 id="cite-title">Citation</h2>
+  <div class="bib">
+<pre id="bibtex">@misc{bahety2026oopsierecover,
+  title  = {OopsieRecover: Learning Transferable VLA Corrections from Semantic Interventions},
+  author = {Bahety, Arpit and Peri, Skand and Ambatipudi, Sriniket and Xu, Chen and Nishimura, Haruki and Itkina, Masha and Mart{\'i}n-Mart{\'i}n, Roberto},
+  year   = {2026}
+}</pre>
+    <button id="copyBib" type="button">Copy</button>
+  </div>
+</section>
+</main>
+
+<footer class="gut"><div><span style="display:flex;align-items:center;gap:12px"><img src="assets/logo/mark-light.svg" alt="" width="30" height="30">OopsieRecover</span></div></footer>
+
+<dialog class="vd" aria-labelledby="vdTitle">
+  <div class="vd-head"><h2 id="vdTitle"></h2><button type="button" id="vdClose">Close <span aria-hidden="true">×</span></button></div>
+  <video controls muted playsinline preload="none"></video>
+</dialog>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const NS = 'http://www.w3.org/2000/svg';
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const el = (name, attrs = {}, parent, text) => { const e = document.createElementNS(NS, name); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; };
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const lerp = (a, b, t) => a + (b - a) * t;
+const onView = (node, fn, threshold = .3) => { const io = new IntersectionObserver(es => es.forEach(e => fn(e.isIntersecting)), { threshold }); io.observe(node); return io; };
+function guard(name, fn) { try { fn(); } catch (e) { console.error(name, e); } }
+
+/* ============ shared illustrations: table, coffee maker, pod in a Franka-style gripper ============ */
+function drawTable(svg, parent, x1, x2, y, h, id) {
+  const defs = el('defs', {}, svg);
+  const pat = el('pattern', { id, width: 10, height: 10, patternUnits: 'userSpaceOnUse' }, defs);
+  el('rect', { width: 10, height: 10, fill: '#ffffff' }, pat);
+  el('rect', { width: 5, height: 10, fill: 'var(--gingham)', opacity: .38 }, pat);
+  el('rect', { width: 10, height: 5, fill: 'var(--gingham)', opacity: .38 }, pat);
+  el('rect', { x: x1, y, width: x2 - x1, height: h, fill: `url(#${id})` }, parent);
+  el('line', { x1, x2, y1: y, y2: y, class: 'tbl-line' }, parent);
+}
+// Drip coffee maker, side view. Local units: body from x 0 to 88, table at y 0, filter-holder opening at x 18..54 on top (y -134), lid hinged at the back.
+function drawMachine(parent, x0, y0, s) {
+  const g = el('g', { transform: `translate(${x0},${y0}) scale(${s})` }, parent);
+  el('ellipse', { cx: 44, cy: 0, rx: 52, ry: 3.5, class: 'm-shadow' }, g);
+  el('rect', { x: 60, y: -132, width: 28, height: 122, rx: 6, class: 'm-tower' }, g);
+  el('path', { d: 'M-4,-10 Q-4,-15 1,-15 H87 Q92,-15 92,-10 V0 H-4 Z', class: 'm-base' }, g);
+  el('rect', { x: 66, y: -11, width: 18, height: 6, rx: 1.5, class: 'm-panel' }, g);
+  el('rect', { x: 69, y: -9.5, width: 4, height: 3, class: 'm-led' }, g);
+  el('rect', { x: 76, y: -9.5, width: 4, height: 3, class: 'm-led' }, g);
+  el('path', { d: 'M8,-86 H60 V-30 Q60,-17 47,-17 H21 Q8,-17 8,-30 Z', class: 'm-glass' }, g);
+  el('path', { d: 'M8,-42 H60 V-30 Q60,-17 47,-17 H21 Q8,-17 8,-30 Z', class: 'm-coffee' }, g);
+  el('path', { d: 'M14,-80 V-48', class: 'm-hi' }, g);
+  el('path', { d: 'M8,-76 C-7,-76 -7,-36 8,-36', class: 'm-handle' }, g);
+  el('rect', { x: 5, y: -97, width: 58, height: 11, rx: 2, class: 'm-steel' }, g);
+  el('path', { d: 'M8,-94 H60', class: 'm-hi' }, g);
+  el('path', { d: 'M0,-97 V-126 Q0,-134 8,-134 H88 V-97 Z', class: 'm-head' }, g);
+  el('path', { d: 'M62,-133.4 H87.4 V-97.6 H62 Z', class: 'm-headshade' }, g);
+  el('rect', { x: 18, y: -134, width: 36, height: 6, rx: 2, class: 'm-open' }, g);
+  el('path', { d: 'M3,-118 H58', class: 'm-seam' }, g);
+  const lid = el('g', { transform: 'translate(84,-133) rotate(-98)' }, g);
+  el('rect', { x: -3, y: -5, width: 90, height: 10, rx: 4.5, class: 'm-lid' }, lid);
+  el('rect', { x: 34, y: -2.2, width: 34, height: 4.4, rx: 2, class: 'm-lidgrip' }, lid);
+  return g;
+}
+// A second, different coffee maker for the Steer step: black, taller head, round carafe, lid opening further.
+// Local units: body x 0..82, table y 0, filter-holder opening x 16..48 at y -152, lid hinged at (79,-151).
+function drawMachineB(parent, x0, y0, s) {
+  const g = el('g', { transform: `translate(${x0},${y0}) scale(${s})` }, parent);
+  el('ellipse', { cx: 41, cy: 0, rx: 48, ry: 3.5, class: 'm-shadow' }, g);
+  el('rect', { x: 54, y: -150, width: 28, height: 140, rx: 7, class: 'b-tower' }, g);
+  el('path', { d: 'M-3,-9 Q-3,-13 1,-13 H81 Q85,-13 85,-9 V0 H-3 Z', class: 'b-base' }, g);
+  el('circle', { cx: 72, cy: -6.5, r: 2, class: 'b-led' }, g);
+  el('path', { d: 'M10,-104 H52 C60,-84 61,-36 45,-20 H17 C1,-36 2,-84 10,-104 Z', class: 'm-glass' }, g);
+  el('path', { d: 'M3.6,-44 H58.4 C57,-34 53,-26 45,-20 H17 C9,-26 5,-34 3.6,-44 Z', class: 'm-coffee' }, g);
+  el('path', { d: 'M14,-92 C11,-78 11,-60 13,-50', class: 'm-hi' }, g);
+  el('path', { d: 'M8,-96 C-8,-94 -8,-52 6,-50', class: 'm-handle' }, g);
+  el('path', { d: 'M0,-108 V-138 Q0,-152 14,-152 H82 V-108 Z', class: 'b-head' }, g);
+  el('rect', { x: 0, y: -112, width: 82, height: 6, class: 'm-steel' }, g);
+  el('rect', { x: 16, y: -152, width: 32, height: 6, rx: 2, class: 'b-open' }, g);
+  const lid = el('g', { transform: 'translate(79,-151) rotate(-100)' }, g);
+  el('rect', { x: -3, y: -5, width: 74, height: 10, rx: 4.5, class: 'b-lid' }, lid);
+  el('rect', { x: 8, y: -2, width: 50, height: 4, rx: 2, class: 'b-lidrim' }, lid);
+  return g;
+}
+// K-cup pod centred on (0,0); with the gripper its fingers hold the cup below the foil lid.
+function drawPod(parent, grip = true) {
+  if (grip) {
+    el('rect', { x: -6, y: -48, width: 12, height: 13, rx: 3, class: 'g-link' }, parent);
+    el('rect', { x: -9, y: -36, width: 18, height: 4, rx: 1, class: 'g-flange' }, parent);
+    el('rect', { x: -16, y: -32, width: 32, height: 12, rx: 4, class: 'g-hand' }, parent);
+    el('rect', { x: -14.5, y: -21, width: 5, height: 17, rx: 2, class: 'g-finger' }, parent);
+    el('rect', { x: 9.5, y: -21, width: 5, height: 17, rx: 2, class: 'g-finger' }, parent);
+  }
+  el('path', { d: 'M-8.5,-5 L8.5,-5 L6,8 Q0,9.6 -6,8 Z', class: 'pod-cup' }, parent);
+  el('rect', { x: -10, y: -8.5, width: 20, height: 4, rx: 1.6, class: 'pod-lid' }, parent);
+  el('path', { d: 'M-6,-7.3 H2', class: 'm-hi', opacity: .6 }, parent);
+}
+// The human operator in side profile, facing the robot: VR headset on, a Touch-style controller in each hand.
+// Origin is roughly the centre of the head; returns the mouth (to animate) and the far controller's tip.
+const grad=(defs,id,stops,x2=0,y2=1)=>{const g=el('linearGradient',{id,x1:0,y1:0,x2,y2},defs);stops.forEach(([o,c,op])=>el('stop',{offset:o,'stop-color':c,'stop-opacity':op??1},g));return `url(#${id})`;};
+function drawOperator(g,id){
+  const d=el('defs',{},g);
+  const SKIN=grad(d,'sk'+id,[[0,'#e9bc9b'],[1,'#d79f7d']],1,0);
+  const SHIRT=grad(d,'sh'+id,[[0,'#3f6f8f'],[1,'#2f5672']]);
+  const SHIRT2=grad(d,'sh2'+id,[[0,'#2f5672'],[1,'#264a63']]);
+  const HAIR=grad(d,'hr'+id,[[0,'#4a3329'],[1,'#2e201a']]);
+  const SHELL=grad(d,'vs'+id,[[0,'#ffffff'],[1,'#d9dcde']]);
+  const m=el('mask',{id:'fade'+id,maskUnits:'userSpaceOnUse',x:-80,y:-60,width:200,height:200},d);
+  const mg=el('linearGradient',{id:'fg'+id,x1:0,y1:0,x2:0,y2:1},d);el('stop',{offset:.78,'stop-color':'#fff'},mg);el('stop',{offset:1,'stop-color':'#000'},mg);
+  el('rect',{x:-80,y:-40,width:200,height:150,fill:`url(#fg${id})`},m);
+  const L='#6b4a3a', S={stroke:L,'stroke-width':.7,'stroke-linejoin':'round'};
+  const b=el('g',{mask:`url(#fade${id})`},g);
+  // long hair behind the shoulders
+  el('path',{d:'M-4,-26 C-20,-26 -26,-12 -24,4 C-22,20 -24,34 -30,48 C-24,52 -14,50 -10,44 C-8,34 -10,22 -8,14 Z',fill:HAIR},b);
+  // far arm, reaching forward behind the body
+  limb(b,'M8,46 C16,56 30,54 42,46',SHIRT2,9);
+  el('ellipse',{cx:45,cy:45,rx:4.2,ry:3.6,fill:SKIN,...S},b);
+  ctrl(b,47,42,-18,'far');
+  // neck
+  el('path',{d:'M-9,12 C-9,24 -10,32 -12,40 L8,40 C6,32 5,24 6,16 Z',fill:SKIN,...S},b);
+  // torso
+  el('path',{d:'M-16,38 C-27,42 -30,54 -30,68 L-30,110 L28,110 L28,74 C28,60 22,48 12,42 C6,38 -2,37 -8,38 Z',fill:SHIRT,...S},b);
+  el('path',{d:'M-9,38 C-4,43 4,43 9,40',fill:'none',stroke:'#24445a','stroke-width':.9},b);
+  // head in profile, facing right
+  el('path',{d:'M-17,-4 C-19,-20 -6,-28 6,-26 C14,-24 17,-15 17,-7 L17.5,-1 C19.5,1.5 21,3.6 20.4,5.6 C19.6,7.2 17.6,7.6 15.8,8 C16.6,9.4 16.6,10.8 15.6,11.6 L14.6,12.6 C15.6,13.6 15.5,15.2 14.4,16.2 C13.4,17 13.1,17.8 13.6,19.2 C14,21.6 12,24 7.6,24.4 C2,24.8 -4,22 -8,18 C-13,13 -16.4,6 -17,-4 Z',fill:SKIN,...S},b);
+  el('path',{d:'M14.6,12.6 L11.5,12.9',stroke:'#8a4b3c','stroke-width':.8,'stroke-linecap':'round'},b);
+  el('path',{d:'M15.6,11.6 C15,12.2 14.6,12.4 14.6,12.6 C15.2,13.2 15.4,13.6 15.2,14.4',fill:'#c06f62',opacity:.6},b);
+  const mouth=el('ellipse',{cx:13.2,cy:12.9,rx:1.8,ry:.45,fill:'#5e2a21'},b);
+  el('ellipse',{cx:-4,cy:3,rx:3.2,ry:4.6,fill:SKIN,...S},b);
+  el('path',{d:'M-4.6,1 C-3,1.4 -2.6,3.4 -3.6,5',fill:'none',stroke:L,'stroke-width':.6},b);
+  // hair over the crown and behind the ear
+  el('path',{d:'M13,-18 C10,-28 -10,-32 -19,-17 C-22,-10 -21,-2 -19,6 C-17,12 -13,16 -10,20 C-12,12 -11,4 -9,-2 C-8,-8 -4,-12 2,-14 Z',fill:HAIR},b);
+  el('path',{d:'M8,-24 C-2,-27 -12,-22 -16,-10 M2,-23 C-6,-23 -12,-16 -14,-6',fill:'none',stroke:'#7a5a48','stroke-width':.7,opacity:.7},b);
+  // headset in profile: strap round the back, top strap, shell over the eyes
+  el('path',{d:'M8,-10 C-2,-12 -12,-12 -19,-8 L-19,-2 C-12,-6 -2,-6 8,-4 Z',fill:'#4a5056'},b);
+  el('path',{d:'M2,-12 C0,-20 -4,-26 -9,-29 L-12,-27 C-8,-24 -5,-18 -4,-11 Z',fill:'#4a5056'},b);
+  el('path',{d:'M7,-14 H10 V4 H7 Q5,4 5,2 V-12 Q5,-14 7,-14 Z',fill:'#2b2f33'},b);
+  el('path',{d:'M10,-15 H26 Q31,-15 31,-9 V-1 Q31,5 26,5 H10 Z',fill:SHELL,stroke:'#7d848a','stroke-width':.8},b);
+  el('path',{d:'M10,1 H30.4 Q29.4,5 26,5 H10 Z',fill:'#c9cdd0'},b);
+  el('rect',{x:28.6,y:-11,width:2.2,height:6,rx:1.1,fill:'#2b2f33'},b);
+  el('path',{d:'M12,-13.4 H26',stroke:'#fff','stroke-width':1,'stroke-linecap':'round'},b);
+  // near arm: upper arm down, forearm forward and up to the controller
+  limb(b,'M-18,50 C-22,62 -20,74 -14,80 C-8,85 4,80 16,72 C22,68 28,63 32,60',SHIRT,12);
+  el('path',{d:'M-14,79 C-12,74 -10,72 -6,71',fill:'none',stroke:'#24445a','stroke-width':.8,opacity:.7},b);
+  el('path',{d:'M27,57 L33,66',stroke:'#24445a','stroke-width':1,opacity:.8},b);
+  el('ellipse',{cx:35,cy:59,rx:4.8,ry:4.2,fill:SKIN,...S},b);
+  ctrl(b,37,55,-24,'near');
+  return {mouth,tip:[46,30]};
+}
+function limb(g,d,fill,w){el('path',{d,fill:'none',stroke:'#6b4a3a','stroke-width':w+1.4,'stroke-linecap':'round','stroke-linejoin':'round'},g);el('path',{d,fill:'none',stroke:fill,'stroke-width':w,'stroke-linecap':'round','stroke-linejoin':'round'},g);}
+function ctrl(g,x,y,r,which){
+  const c=el('g',{transform:`translate(${x},${y}) rotate(${r})`},g);
+  el('ellipse',{cx:1,cy:-9,rx:3.4,ry:7,fill:'none',stroke:'#7d848a','stroke-width':4.2,transform:'rotate(-30 1 -9)'},c);
+  el('ellipse',{cx:1,cy:-9,rx:3.4,ry:7,fill:'none',stroke:'#f3f3f1','stroke-width':2.6,transform:'rotate(-30 1 -9)'},c);
+  el('path',{d:'M-3,-3 C-4,4 -3,9 -1,12 Q1,13 2.5,11 C3.5,6 3.5,1 3,-3 Z',fill:'#f3f3f1',stroke:'#7d848a','stroke-width':.7},c);
+  el('ellipse',{cx:0,cy:-3,rx:3.4,ry:1.4,fill:'#e4e5e6',stroke:'#7d848a','stroke-width':.6},c);
+  el('circle',{cx:-.6,cy:-3.4,r:.9,fill:'#2b2f33'},c);
+}
+
+/* ============ nav ============ */
+guard('nav', () => {
+  const nav = $('.toc'), hero = $('#hero');
+  onView(hero, vis => nav.classList.toggle('on', !vis), 0.05);
+  const links = $$('.toc-links a');
+  const secs = links.map(a => $(a.getAttribute('href')));
+  const upd = () => {
+    const y = innerHeight * .35; let idx = -1;
+    secs.forEach((s, i) => { if (s.getBoundingClientRect().top <= y) idx = i; });
+    if (innerHeight + scrollY >= document.body.scrollHeight - 4) idx = secs.length - 1;
+    links.forEach((a, i) => { if (i === idx) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current'); });
+  };
+  addEventListener('scroll', upd, { passive: true }); upd();
+});
+
+/* ============ lazy videos + dialog ============ */
+guard('media', () => {
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting) { if (!v.getAttribute('src')) v.src = v.dataset.src; if (!reduced) v.play().catch(() => {}); }
+    else v.pause();
+  }), { threshold: .25 });
+  $$('video[data-src]').forEach(v => io.observe(v));
+  window.__watch = v => io.observe(v);
+  const dlg = $('dialog.vd'), dv = $('video', dlg);
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-open]'); if (!b) return;
+    const src = document.getElementById(b.dataset.open);
+    $('#vdTitle').textContent = b.dataset.title || '';
+    dv.src = src.dataset.src || src.currentSrc || src.src; dv.poster = src.poster;
+    dlg.showModal(); dv.currentTime = 0; dv.play().catch(() => {});
+  });
+  const close = () => { dv.pause(); dlg.close(); };
+  $('#vdClose').addEventListener('click', close);
+  dlg.addEventListener('click', e => { if (e.target === dlg) close(); });
+  dlg.addEventListener('close', () => dv.pause());
+});
+
+/* ============ hero: status + schematic arcs over the footage ============ */
+guard('hero', () => {
+  const hero = $('#hero'), v = $('.hero-video', hero), svg = $('.overlay', hero), stat = $('.status', hero), pause = $('.pause', hero);
+  // Steering labels logged in this run (read from the recording's frame labels).
+  const LOG = [
+    [7.7, 8.1, ['colliding with the machine body']],
+    [8.1, 8.2, ['colliding with the machine body', 'opening the gripper before the filter holder']],
+    [8.2, 8.5, ['opening the gripper before the filter holder']],
+    [8.5, 8.6, ['moving into the lid', 'opening the gripper before the filter holder']],
+    [8.6, 8.9, ['moving into the lid']],
+    [9.4, 10.4, ['moving into the lid']],
+  ];
+  const VW = 636, VH = 356, POS = [.62, .5];
+  // The moment the correction first fires. The video pauses on this frame while the overlay shows the choice.
+  // Positions are in the video's own pixels (636x356): the pod sits just right of the open lid; the real arm
+  // then goes up and over the lid into the filter holder. The candidate arcs are illustrative.
+  const FREEZE = { at: 7.70, hold: 4400 };
+  const MOMENT = { t1: 8.95, o: [495, 118], ends: [
+    { p: [466, 96], rej: 'hits lid' }, { p: [468, 142], rej: 'hits body' }, { p: [486, 156], rej: '' },
+    { p: [532, 96] }, { p: [530, 136] }, { p: [446, 48], pick: true, bend: -.55 }] };
+  const g = el('g', { opacity: 0 }, svg);
+  let built = null;
+  const map = () => {
+    const r = svg.getBoundingClientRect(), s = Math.max(r.width / VW, r.height / VH);
+    const ox = (r.width - VW * s) * POS[0], oy = (r.height - VH * s) * POS[1];
+    return [p => [ox + p[0] * s, oy + p[1] * s], s, r];
+  };
+  function build() {
+    g.replaceChildren(); const [m, sc, r] = map(); const o = m(MOMENT.o);
+    const defs = el('defs', {}, g);
+    const mask = el('mask', { id: 'hero-spot', maskUnits: 'userSpaceOnUse', x: 0, y: 0, width: r.width, height: r.height }, defs);
+    const rg = el('radialGradient', { id: 'hero-spot-g', gradientUnits: 'userSpaceOnUse', cx: o[0] - 20 * sc, cy: o[1] - 14 * sc, r: 95 * sc }, defs);
+    el('stop', { offset: .55, 'stop-color': '#000' }, rg); el('stop', { offset: 1, 'stop-color': '#fff' }, rg);
+    el('rect', { width: r.width, height: r.height, fill: 'url(#hero-spot-g)' }, mask);
+    const spot = el('rect', { class: 'spot', width: r.width, height: r.height, mask: 'url(#hero-spot)', opacity: 0 }, g);
+    // On small screens the clip is tiny: spread the arcs out from the pod and thin the strokes so they stay readable.
+    const sw = Math.max(.7, sc / 1.6), spread = clamp(1.6 / sc, 1, 1.5), fs = n => Math.max(11, n * sw);
+    const arcs = MOMENT.ends.map(c => {
+      const e0 = m(c.p), e = [o[0] + (e0[0] - o[0]) * spread, o[1] + (e0[1] - o[1]) * spread], k = c.bend ?? .2;
+      const mx = (o[0] + e[0]) / 2 + (e[1] - o[1]) * k, my = (o[1] + e[1]) / 2 - (e[0] - o[0]) * k;
+      const d = `M${o[0]},${o[1]} Q${mx},${my} ${e[0]},${e[1]}`;
+      const glow = c.pick ? el('path', { class: 'glow', d }, g) : null;
+      el('path', { class: 'halo', d, 'stroke-width': 10 * sw }, g);
+      const a = el('path', { class: 'arc' + (c.rej != null ? ' rej' : '') + (c.pick ? ' pick' : ''), d, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1, 'stroke-width': (c.pick ? 5.5 : 4) * sw }, g);
+      // arrowhead along the curve's end tangent
+      const ang = Math.atan2(e[1] - my, e[0] - mx), L = (c.pick ? 15 : 12) * sw, W = L * .62;
+      const pt = (dx, dy) => [e[0] + dx * Math.cos(ang) - dy * Math.sin(ang), e[1] + dx * Math.sin(ang) + dy * Math.cos(ang)].join(',');
+      const head = el('path', { class: 'head', d: `M${pt(4 * sw, 0)} L${pt(-L, W)} L${pt(-L * .6, 0)} L${pt(-L, -W)} Z`, fill: c.pick ? '#c9adff' : c.rej != null ? '#ff8a7e' : '#dfe3e6', stroke: '#0b0f12', 'stroke-width': 1.5, opacity: 0 }, g);
+      let mark = null, lab = null;
+      if (c.rej != null) {
+        mark = el('g', { class: 'x', opacity: 0, transform: `translate(${e[0]},${e[1]}) scale(${sw})` }, g); el('circle', { r: 9 }, mark); el('path', { d: 'M-4,-4L4,4M4,-4L-4,4' }, mark);
+        if (c.rej) lab = el('text', { class: 'lab-rej', x: e[0] - 14 * sw, y: e[1] + (e[1] < o[1] ? -10 : 22) * sw, 'text-anchor': 'end', opacity: 0, 'font-size': fs(14) }, g, c.rej);
+      }
+      if (c.pick) lab = el('text', { class: 'lab-pick', x: e[0] - 16 * sw, y: e[1] + 5, 'text-anchor': 'end', opacity: 0, 'font-size': fs(15) }, g, 'lowest predicted cost');
+      return { a, head, mark, lab, glow, c };
+    });
+    el('circle', { class: 'origin', cx: o[0], cy: o[1], r: 5 * sw }, g);
+    const tp = m([392, 14]); const tag = el('g', { opacity: 0, transform: `translate(${tp[0]},${tp[1] + 18 * sw})` }, g);
+    const tb = el('rect', { class: 'tag-bg', x: 0, y: -18 * sw, rx: 4, height: 46 * sw }, tag);
+    const t1 = el('text', { class: 'lab-tag', x: 10 * sw, y: 0, 'font-size': fs(14) }, tag, 'Paused · correction fires');
+    el('text', { class: 'lab-tag', x: 10 * sw, y: 19 * sw, 'font-size': fs(13), style: 'fill:#cbd3ce' }, tag, 'π0.5 samples 6 action chunks');
+    tb.setAttribute('width', Math.max(t1.getComputedTextLength(), 220 * sw) + 20 * sw);
+    built = { spot, arcs, tag };
+  }
+  new ResizeObserver(build).observe(svg);
+
+  // Freeze state: the clip pauses itself once per loop at FREEZE.at; the Pause button still works on top of it.
+  let froze = false, freezeMs = -1, userPaused = false, lastTs = null;
+  const freezing = () => freezeMs >= 0;
+  let last = '';
+  function frame(ts) {
+    const t = v.currentTime || 0;
+    if (t < FREEZE.at - .5) froze = false;
+    if (!froze && t >= FREEZE.at && t < FREEZE.at + .4) { froze = true; freezeMs = 0; v.pause(); }
+    if (freezing()) {
+      if (!userPaused && visible && lastTs != null) freezeMs += ts - lastTs;
+      if (freezeMs >= FREEZE.hold) { freezeMs = -1; if (!userPaused && visible) v.play().catch(() => {}); }
+    }
+    lastTs = ts;
+    const hit = LOG.find(([a, b]) => t >= a && t < b);
+    const key = freezing() ? 'freeze' : hit ? hit[2].join('|') : (t >= 10.4 ? 'done' : 'off');
+    if (key !== last) {
+      last = key;
+      stat.classList.toggle('on', !!hit || freezing());
+      stat.querySelector('span').innerHTML = freezing() ? 'Paused at the first correction: <b>colliding with the machine body</b>'
+        : hit ? `Correction fires: <b>${hit[2].join(' · ')}</b>` : (t >= 10.4 ? 'π<sub>0.5</sub> closes the lid on its own' : 'π<sub>0.5</sub> acting on its own');
+    }
+    if (built) {
+      // e: ms since the freeze began; after it, real playback time keeps it moving
+      const e = freezing() ? freezeMs : froze && t >= FREEZE.at ? FREEZE.hold + (t - FREEZE.at) * 1000 : -1;
+      const on = e >= 0 && t <= MOMENT.t1;
+      g.setAttribute('opacity', on ? 1 - seg(t, MOMENT.t1 - .2, MOMENT.t1) : 0);
+      if (on) {
+        built.spot.setAttribute('opacity', .55 * seg(e, 0, 350) * (1 - seg(e, FREEZE.hold, FREEZE.hold + 400)));
+        built.tag.setAttribute('opacity', seg(e, 150, 450) * (1 - seg(e, 2250, 2500)));
+        built.arcs.forEach((b, i) => {
+          const k = ease(seg(e, 400 + i * 170, 900 + i * 170));
+          b.a.setAttribute('stroke-dashoffset', 1 - k);
+          b.head.setAttribute('opacity', k > .97 ? 1 : 0);
+          const dim = !b.c.pick && e > 2500 ? .4 : 1;
+          b.a.style.opacity = dim; b.head.style.opacity = dim;
+          if (b.mark) b.mark.setAttribute('opacity', seg(e, 1850, 2050));
+          if (b.lab && !b.c.pick) b.lab.setAttribute('opacity', seg(e, 1950, 2200) * (1 - seg(e, FREEZE.hold - 200, FREEZE.hold)));
+          if (b.c.pick) { b.lab.setAttribute('opacity', seg(e, 2550, 2850)); b.glow.style.opacity = .55 * seg(e, 2500, 2800) * (1 - seg(e, FREEZE.hold, FREEZE.hold + 600)); }
+        });
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  let visible = true;
+  requestAnimationFrame(frame);
+  if (reduced) { v.removeAttribute('autoplay'); v.pause(); pause.textContent = 'Play'; pause.setAttribute('aria-pressed', 'true'); }
+  if (reduced) userPaused = true;
+  pause.addEventListener('click', () => {
+    userPaused = !userPaused;
+    pause.textContent = userPaused ? 'Play' : 'Pause'; pause.setAttribute('aria-pressed', String(userPaused));
+    if (userPaused) v.pause(); else if (!freezing()) v.play().catch(() => {});
+  });
+  onView(hero, vis => { visible = vis; if (!vis) v.pause(); else if (!userPaused && !freezing()) v.play().catch(() => {}); }, .1);
+});
+
+/* ============ method animation ============ */
+guard('method', () => {
+  const section = $('#method');
+  const STEPS = [
+    { name: 'Intervene', ms: 7500, cap: 'π<sub>0.5</sub> runs the task. Before it hits the machine, a human takes over in VR, steers the pod clear, and says why as she does it: <i>“avoid hitting the machine lid and body.”</i> The red stretch is the <b class="m red">pre-intervention window</b>, the moments that made the human step in.' },
+    { name: 'Ground', ms: 5200, cap: 'A VLM names the things the sentence is about and puts a seed point on each. SAM grows each seed into a region, and depth lifts it into a 3D <b>point set</b>. Something small like a nozzle tip stays a single point.' },
+    { name: 'Propose', ms: 6000, cap: 'From the task, the sentence and how the point sets moved, the VLM writes a <b>gated cost</b>: a <b class="m ours">gate</b> for when the correction applies, a <b class="m red">correction</b> term for what to avoid, and a task term that keeps the robot making progress.' },
+    { name: 'Calibrate', ms: 5000, cap: 'The cost says what to measure, not how much is too much. The threshold <b class="m ours">τ</b> is the lowest gate score in the pre-intervention window: the level of violation at which this human stepped in.' },
+    { name: 'Verify', ms: 6200, cap: 'The cost has to agree with the recording. It must score the human’s fix lower than the failure (<b>ranking</b>) and cross τ before the takeover (<b>trigger</b>). If a check fails, the VLM revises the gate or the correction term and tries again.' },
+    { name: 'Steer', ms: 15000, cap: 'The same cost carries to scenes it never saw: <b class="m ours">L1</b> moves the machine, <b class="m ours">L2</b> swaps in a different coffee maker on a different table. Each time, the VLM finds the lid, body and filter holder again and rebuilds their point sets. When the gate score crosses τ, π<sub>0.5</sub> samples action chunks, a point dynamics model predicts where each one takes the pod, and the chunk with the lowest predicted cost runs. The VLA itself never changes.' },
+  ];
+  const HOLD = 1300;
+  const LAYOUT = {
+    wide: { svg: $('.mfig-wide', section), scene: [20, 40], code: [500, 40, 480, 170], chart: [500, 240, 232, 200], checks: [748, 240, 232, 200],
+      flows: { sc: 'M402,190 C440,190 456,130 498,128', cg: 'M616,212 L616,238', gk: 'M734,340 L746,340', ks: 'M864,442 C864,462 830,462 700,462 L230,462 C215,462 212,455 212,424', ref: 'M960,238 C960,222 960,214 940,214' },
+      labels: { sc: [448, 214, 'sentence +'], sc2: [448, 228, 'motion'], ks: [520, 456, 'deploy'] } },
+    tall: { svg: $('.mfig-tall', section), scene: [20, 20], code: [20, 432, 380, 170], chart: [20, 632, 185, 190], checks: [215, 632, 185, 190],
+      flows: { sc: 'M210,402 L210,430', cg: 'M110,604 L110,630', gk: 'M207,727 L213,727', ks: 'M307,824 C307,900 300,940 260,940 L10,940 L10,30 L18,30', ref: 'M380,630 C380,616 380,608 362,608' },
+      labels: { sc: [292, 420, 'sentence + motion'], ks: [120, 934, 'deploy'] } }
+  };
+  const BASE = [[40, 262], [96, 254], [150, 246]], PRE = [[150, 246], [178, 241], [205, 237]];
+  const HUMAN = [[205, 237], [212, 196], [228, 160], [258, 150], [277, 156], [277, 182]];
+  const STEER0 = [[40, 258], [90, 250], [140, 242], [170, 238]];
+  const pathD = pts => 'M' + pts.map(p => p.join(',')).join(' L');
+  const along = (pts, t) => { if (t <= 0) return pts[0]; const L = []; let tot = 0; for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); L.push(d); tot += d; } let r = t * tot; for (let i = 0; i < L.length; i++) { if (r <= L[i]) { const u = r / L[i]; return [lerp(pts[i][0], pts[i + 1][0], u), lerp(pts[i][1], pts[i + 1][1], u)]; } r -= L[i]; } return pts[pts.length - 1]; };
+  const rand = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(7);
+  const regionPts = (n, fn) => Array.from({ length: n }, fn);
+  const PS = {
+    lid: regionPts(14, () => { const u = rand(); return [lerp(320, 308, u) + (rand() - .5) * 5, lerp(188, 102, u)]; }),
+    body: regionPts(26, () => [244 + rand() * 72, 200 + rand() * 116]),
+    holder: regionPts(6, () => [266 + rand() * 22, 186 + rand() * 6]),
+    pod: regionPts(7, () => [(rand() - .5) * 12, (rand() - .5) * 12]),
+  };
+  const SEEDS = { lid: [314, 145, 'lid'], body: [292, 262, 'body'], holder: [277, 189, 'holder'] };
+  const PS2 = {
+    lid: regionPts(14, () => { const u = rand(); return [lerp(279, 268, u) + (rand() - .5) * 5, lerp(168, 103, u)]; }),
+    body: regionPts(26, () => [206 + rand() * 72, 182 + rand() * 132]),
+    holder: regionPts(6, () => [220 + rand() * 24, 168 + rand() * 4]),
+  };
+  const HOLDER2 = [232, 160];
+  const CODE = [
+    [['kw', 'def '], ['', 'cost(P):']],
+    [['', '  '], ['g', 'gate'], ['', ' = grasped(pod) and near(pod, body)']],
+    [['', '  '], ['c', 'correction'], ['', ' = max(0, m − clearance(pod, lid ∪ body))']],
+    [['', '  '], ['t', 'task'], ['', ' = dist(pod, filter_holder)']],
+    [['kw', '  return '], ['g', 'gate'], ['', ' * ('], ['c', 'correction'], ['', ' + λ · '], ['t', 'task'], ['', ')']],
+  ];
+  const CURVE = t => t < .30 ? .12 + .03 * Math.sin(t * 24) : t < .62 ? .12 + (t - .30) / .32 * .76 : t < .66 ? .88 : Math.max(.14, .88 - (t - .66) / .2 * .7);
+  const CANDS = [{ e: [70, -6], rej: true }, { e: [64, 18], rej: true }, { e: [56, -34], rej: true }, { e: [30, -64] }, { e: [6, -70] }, { e: [36, -90], pick: true }];
+  const SHIFT = -40, HOLDER1 = [277 + SHIFT, 182];
+  const BEATS = [['L1', ' · new pose: same machine, moved'], ['L2', ' · new scene: different machine, table']];
+
+  const views = {};
+  for (const key of ['wide', 'tall']) {
+    const L = LAYOUT[key], svg = L.svg; const V = { L };
+    const defs = el('defs', {}, svg);
+    const mk = el('marker', { id: 'ah-' + key, viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs); el('path', { d: 'M0,0 L8,4 L0,8 Z', class: 'arrowhead' }, mk);
+    V.flows = {};
+    for (const f in L.flows) V.flows[f] = el('path', { d: L.flows[f], class: 'flow part dim', 'marker-end': `url(#ah-${key})` }, svg);
+    V.flowLabels = {};
+    for (const f in L.labels) { const [x, y, t] = L.labels[f]; V.flowLabels[f] = el('text', { x, y, class: 'tiny part dim', 'text-anchor': 'middle' }, svg, t); }
+    const [sx, sy] = L.scene;
+    const sc = V.scene = el('g', { transform: `translate(${sx},${sy})`, class: 'part' }, svg);
+    el('rect', { x: 0, y: 0, width: 380, height: 380, class: 'box' }, sc);
+    V.sceneTitle = el('text', { x: 12, y: 22, class: 'boxtitle' }, sc, 'training scene');
+    drawTable(svg, sc, 10, 370, 320, 18, 'gh-' + key);
+    V.table2 = el('g', { opacity: 0 }, sc);
+    el('rect', { x: 10, y: 320, width: 360, height: 18, class: 'tbl-plain' }, V.table2);
+    el('line', { x1: 10, x2: 370, y1: 320, y2: 320, class: 'tbl-plain-line' }, V.table2);
+    V.ghost = el('g', { opacity: 0 }, sc);
+    el('rect', { x: 232, y: 186, width: 96, height: 134, rx: 6, class: 'ghost' }, V.ghost);
+    el('path', { d: 'M282,352 H244', class: 'ghost-arrow', 'marker-end': `url(#ah-${key})` }, V.ghost);
+    el('text', { x: 290, y: 356, class: 'tiny' }, V.ghost, 'moved');
+    V.machine = el('g', {}, sc);
+    drawMachine(V.machine, 236, 320, 1);
+    V.machine2 = el('g', { opacity: 0 }, sc);
+    drawMachineB(V.machine2, 200, 320, 1);
+    V.pts2 = {};
+    for (const k of ['lid', 'body', 'holder']) { const gp = el('g', { opacity: 0 }, V.machine2); PS2[k].forEach(p => el('circle', { cx: p[0], cy: p[1], r: 2, class: 'pt ' + k }, gp)); V.pts2[k] = gp; }
+    V.pathBase = el('path', { d: pathD(BASE), class: 'p-base', pathLength: 1, 'stroke-dasharray': '1 1' }, sc);
+    V.pathPre = el('path', { d: pathD(PRE), class: 'p-pre', pathLength: 1, 'stroke-dasharray': '1 1' }, sc);
+    V.pathHuman = el('path', { d: pathD(HUMAN), class: 'p-human', pathLength: 1, 'stroke-dasharray': '1 1' }, sc);
+    V.lblBase = el('text', { x: 52, y: 286, class: 'tiny' }, sc, 'π0.5');
+    V.lblPre = el('text', { x: 92, y: 268, class: 'tiny', style: 'fill:var(--red)' }, sc, 'pre-intervention');
+    V.lblHuman = el('text', { x: 108, y: 176, class: 'tiny', style: 'fill:var(--human-text)' }, sc, 'human correction');
+    V.op = el('g', { opacity: 0 }, sc);
+    const OP = [50, 58]; const og = el('g', { transform: `translate(${OP[0]},${OP[1]})` }, V.op);
+    const opr = drawOperator(og, key); V.mouth = opr.mouth; V.opTip = [OP[0] + opr.tip[0], OP[1] + opr.tip[1]];
+    el('text', { x: 14, y: 172, class: 'tiny', style: 'fill:var(--human-text)' }, V.op, 'VR teleop');
+    V.teleop = el('path', { d: '', class: 'teleop', opacity: 0 }, sc);
+    V.bubble = el('g', { opacity: 0 }, sc);
+    el('path', { d: 'M102,34 H336 V82 H102 V66 L66,72 L102,54 Z', class: 'bubble' }, V.bubble);
+    el('text', { x: 112, y: 54, class: 'bubble-t' }, V.bubble, '“Avoid hitting the machine');
+    el('text', { x: 112, y: 71, class: 'bubble-t' }, V.bubble, 'lid and body.”');
+    V.pts = {}; V.seeds = {};
+    for (const k of ['lid', 'body', 'holder']) {
+      const gp = el('g', { opacity: 0 }, V.machine); PS[k].forEach(p => el('circle', { cx: p[0], cy: p[1], r: 2, class: 'pt ' + k }, gp)); V.pts[k] = gp;
+      const [x, y, lab] = SEEDS[k]; const gs = el('g', { opacity: 0 }, V.machine); el('circle', { cx: x, cy: y, r: 6, class: 'seed' }, gs); el('path', { d: `M${x - 9},${y}h5M${x + 4},${y}h5M${x},${y - 9}v5M${x},${y + 4}v5`, class: 'seed' }, gs);
+      el('text', { x: k === 'holder' ? x - 66 : x + 10, y: y - 8, class: 'tiny' }, gs, lab); V.seeds[k] = gs;
+    }
+    V.cands = el('g', { opacity: 0 }, sc);
+    V.candEls = CANDS.map(c => {
+      const o = STEER0[STEER0.length - 1];
+      const e = [o[0] + c.e[0], o[1] + c.e[1]], m = [o[0] + c.e[0] * .5 + c.e[1] * .15, o[1] + c.e[1] * .5 - c.e[0] * .15];
+      const p = el('path', { d: `M${o[0]},${o[1]} Q${m[0]},${m[1]} ${e[0]},${e[1]}`, class: 'cand', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, V.cands);
+      let x = null; if (c.rej) { x = el('g', { class: 'xmark', opacity: 0, transform: `translate(${e[0]},${e[1]})` }, V.cands); el('circle', { r: 6 }, x); el('path', { d: 'M-3,-3L3,3M3,-3L-3,3' }, x); }
+      return { p, x, c, e };
+    });
+    V.pathOurs = el('path', { d: '', class: 'p-ours' }, sc);
+    V.gauge = el('g', { opacity: 0, transform: 'translate(250,50)' }, sc);
+    el('text', { x: 0, y: 0, class: 'tiny' }, V.gauge, 'gate score');
+    el('rect', { x: 0, y: 8, width: 110, height: 7, class: 'gauge' }, V.gauge);
+    V.gaugeOn = el('rect', { x: 0, y: 8, width: 0, height: 7, class: 'gauge-on' }, V.gauge);
+    el('line', { x1: 40, y1: 4, x2: 40, y2: 19, class: 'needle' }, V.gauge);
+    el('text', { x: 40, y: 32, class: 'tiny', 'text-anchor': 'middle' }, V.gauge, 'τ');
+    V.chosenLbl = el('text', { x: 0, y: 0, class: 'tiny', opacity: 0, style: 'fill:var(--ours)' }, sc, 'lowest predicted cost');
+    V.pod = el('g', {}, sc);
+    drawPod(V.pod);
+    V.podPts = el('g', { opacity: 0 }, V.pod); PS.pod.forEach(p => el('circle', { cx: p[0], cy: p[1], r: 2, class: 'pt pod' }, V.podPts));
+    V.podSeed = el('g', { opacity: 0 }, V.pod); el('circle', { r: 11, class: 'seed' }, V.podSeed); el('text', { x: -10, y: 26, class: 'tiny' }, V.podSeed, 'pod');
+    const [cx, cy, cw, ch] = L.code;
+    V.code = el('g', { transform: `translate(${cx},${cy})`, class: 'part' }, svg);
+    el('rect', { x: 0, y: 0, width: cw, height: ch, class: 'box' }, V.code);
+    el('text', { x: 12, y: 22, class: 'boxtitle' }, V.code, 'gated cost, written by the VLM');
+    V.flash = el('rect', { x: 6, y: 84, width: cw - 12, height: 22, class: 'flash' }, V.code);
+    V.codeLines = CODE.map((parts, i) => { const t = el('text', { x: 14, y: 52 + i * 24, class: 'code' }, V.code); const spans = parts.map(([c]) => el('tspan', { class: c }, t, '')); return { t, parts, spans }; });
+    if (key === 'tall') V.codeLines.forEach(l => l.t.setAttribute('style', 'font-size:12px'));
+    const [gx, gy, gw, gh] = L.chart;
+    V.chart = el('g', { transform: `translate(${gx},${gy})`, class: 'part' }, svg);
+    el('rect', { x: 0, y: 0, width: gw, height: gh, class: 'box' }, V.chart);
+    el('text', { x: 12, y: 22, class: 'boxtitle' }, V.chart, key === 'tall' ? 'gate score' : 'gate score, recorded');
+    const px = 16, pw = gw - 32, py = 36, ph = gh - 82;
+    V.winPre = el('rect', { x: px + pw * .40, y: py, width: pw * .22, height: ph, class: 'win-pre', opacity: 0 }, V.chart);
+    V.winHum = el('rect', { x: px + pw * .62, y: py, width: pw * .3, height: ph, class: 'win-hum', opacity: 0 }, V.chart);
+    el('line', { x1: px, y1: py + ph, x2: px + pw, y2: py + ph, class: 'axis' }, V.chart);
+    el('line', { x1: px, y1: py, x2: px, y2: py + ph, class: 'axis' }, V.chart);
+    let cd = ''; for (let i = 0; i <= 60; i++) { const t = i / 60; cd += (i ? 'L' : 'M') + (px + pw * t).toFixed(1) + ',' + (py + ph - CURVE(t) * ph).toFixed(1); }
+    V.curve = el('path', { d: cd, class: 'curve', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, V.chart);
+    const tauY = py + ph - CURVE(.40) * ph;
+    V.tau = el('g', { opacity: 0 }, V.chart); el('line', { x1: px, y1: tauY, x2: px + pw, y2: tauY, class: 'tau' }, V.tau); el('text', { x: px + 4, y: tauY - 5, class: 'tiny', style: 'fill:var(--ours)' }, V.tau, 'τ');
+    V.chartLbl = el('g', { opacity: 0 }, V.chart);
+    el('rect', { x: px, y: gh - 30, width: 9, height: 9, class: 'win-pre', style: 'opacity:.5' }, V.chartLbl); el('text', { x: px + 14, y: gh - 22, class: 'tiny' }, V.chartLbl, 'before takeover');
+    el('rect', { x: px, y: gh - 16, width: 9, height: 9, class: 'win-hum', style: 'opacity:.6' }, V.chartLbl); el('text', { x: px + 14, y: gh - 8, class: 'tiny' }, V.chartLbl, 'human fix');
+    const [kx, ky, kw, kh] = L.checks;
+    V.checks = el('g', { transform: `translate(${kx},${ky})`, class: 'part' }, svg);
+    el('rect', { x: 0, y: 0, width: kw, height: kh, class: 'box' }, V.checks);
+    el('text', { x: 12, y: 22, class: 'boxtitle' }, V.checks, key === 'tall' ? 'checks' : 'checks vs. recording');
+    V.round = el('text', { x: 14, y: 50, class: 'lab' }, V.checks, '');
+    const rows = key === 'tall' ? [['ranking', 'fix < failure'], ['trigger', 'crosses τ']] : [['ranking', 'fix scores below failure'], ['trigger', 'crosses τ before takeover']];
+    V.rows = rows.map(([a, b], i) => { const y = 84 + i * 44; el('text', { x: 14, y, class: 'lab' }, V.checks, a); el('text', { x: 14, y: y + 17, class: 'tiny' }, V.checks, b); return el('text', { x: kw - 18, y, class: 'lab', 'text-anchor': 'end' }, V.checks, ''); });
+    V.verdict = el('text', { x: 14, y: kh - 14, class: 'lab', opacity: 0 }, V.checks, '');
+    views[key] = V;
+  }
+
+  function paint(V, step, t) {
+    const beat = step === 5 ? (t < .5 ? 0 : 1) : -1;
+    if (step === 5) t = beat ? (t - .5) / .5 : t / .5;
+    V.scene.classList.toggle('dim', ![0, 1, 5].includes(step));
+    V.code.classList.toggle('dim', ![2, 3, 4].includes(step));
+    V.chart.classList.toggle('dim', ![3, 4].includes(step));
+    V.checks.classList.toggle('dim', step !== 4);
+    const flowOn = { sc: step === 2, sc2: step === 2, cg: step === 3, gk: step === 4, ks: step === 5, ref: step === 4 };
+    for (const f in V.flows) { V.flows[f].classList.toggle('dim', !flowOn[f]); V.flows[f].classList.toggle('flow-on', !!flowOn[f]); }
+    for (const f in V.flowLabels) V.flowLabels[f].classList.toggle('dim', !flowOn[f]);
+    const title = beat < 0 ? ['', 'training scene'] : BEATS[beat];
+    if (V.sceneTitle.dataset.k !== title.join()) { V.sceneTitle.dataset.k = title.join(); V.sceneTitle.textContent = ''; el('tspan', { class: 'lvl' }, V.sceneTitle, title[0]); el('tspan', {}, V.sceneTitle, title[1]); }
+    const slide = beat === 0 ? ease(seg(t, 0, .14)) : beat === 1 ? 1 : 0;
+    V.machine.setAttribute('transform', `translate(${SHIFT * slide},0)`);
+    V.machine.setAttribute('opacity', beat === 1 ? 1 - seg(t, 0, .1) : 1);
+    V.machine2.setAttribute('opacity', beat === 1 ? seg(t, .06, .18) : 0);
+    V.table2.setAttribute('opacity', beat === 1 ? seg(t, 0, .14) : 0);
+    V.ghost.setAttribute('opacity', beat === 0 ? .6 * seg(t, .02, .12) : 0);
+    ['lid', 'body', 'holder'].forEach((k, i) => V.pts2[k].setAttribute('opacity', beat === 1 ? seg(t, .2 + i * .03, .3 + i * .03) : 0));
+    let pod = PRE[0];
+    const s1 = step === 0;
+    const kB = s1 ? ease(seg(t, 0, .3)) : 1, kP = s1 ? ease(seg(t, .3, .45)) : 1, kH = s1 ? ease(seg(t, .5, .82)) : 1;
+    const fadeOld = step === 1 ? .25 : step >= 2 && step < 5 ? .35 : 1;
+    V.pathBase.setAttribute('stroke-dashoffset', 1 - kB); V.pathPre.setAttribute('stroke-dashoffset', 1 - kP); V.pathHuman.setAttribute('stroke-dashoffset', 1 - kH);
+    [V.pathBase, V.pathPre, V.pathHuman].forEach(e => e.setAttribute('opacity', step === 5 ? 0 : fadeOld));
+    V.lblBase.setAttribute('opacity', s1 ? seg(t, .1, .2) : 0);
+    V.lblPre.setAttribute('opacity', s1 ? seg(t, .38, .45) : 0);
+    V.lblHuman.setAttribute('opacity', s1 ? seg(t, .6, .7) : 0);
+    V.bubble.setAttribute('opacity', s1 ? seg(t, .55, .68) : 0);
+    if (s1) pod = t < .3 ? along(BASE, kB) : t < .5 ? along(PRE, kP) : along(HUMAN, kH);
+    else if (step >= 2 && step <= 4) pod = HUMAN[HUMAN.length - 1];
+    const opOn = s1 ? seg(t, .4, .48) : 0;
+    V.op.setAttribute('opacity', opOn);
+    const talk = s1 && t > .55 && t < .86 ? Math.abs(Math.sin((t - .55) * 70)) : 0;
+    V.mouth.setAttribute('ry', .45 + talk * 1.1);
+    if (s1 && t > .46) {
+      const a = V.opTip, b = [pod[0], pod[1] - 48], m = [(a[0] + b[0]) / 2 + 10, Math.min(a[1], b[1]) - 26];
+      V.teleop.setAttribute('d', `M${a[0]},${a[1]} Q${m[0]},${m[1]} ${b[0]},${b[1]}`);
+      V.teleop.setAttribute('opacity', seg(t, .46, .52) * (1 - seg(t, .84, .92) * .6));
+      V.teleop.style.strokeDashoffset = -t * 160;
+    } else V.teleop.setAttribute('opacity', 0);
+    const showG = step >= 2 && step < 5 ? .55 : 0;
+    ['lid', 'body', 'holder'].forEach((k, i) => {
+      V.seeds[k].setAttribute('opacity', step === 1 ? seg(t, .05 + i * .08, .12 + i * .08) * (1 - seg(t, .7, .85) * .6) : 0);
+      V.pts[k].setAttribute('opacity', step === 1 ? seg(t, .35 + i * .08, .5 + i * .08) : beat === 0 ? seg(t, .16 + i * .03, .26 + i * .03) : showG);
+    });
+    V.podSeed.setAttribute('opacity', step === 1 ? seg(t, .29, .36) * (1 - seg(t, .7, .85) * .6) : 0);
+    V.podPts.setAttribute('opacity', step === 1 ? seg(t, .55, .65) : step === 5 ? seg(t, .2, .3) : showG);
+    V.cands.setAttribute('opacity', step === 5 ? 1 : 0); V.gauge.setAttribute('opacity', step === 5 ? 1 : 0);
+    V.chosenLbl.setAttribute('opacity', 0); V.pathOurs.setAttribute('d', '');
+    if (step === 5) {
+      const kA = ease(seg(t, .22, .44)); pod = along(STEER0, kA);
+      const gv = kA * 60; V.gaugeOn.setAttribute('width', Math.min(110, gv)); V.gaugeOn.style.fill = gv >= 40 ? 'var(--ours)' : 'var(--base)';
+      const o = STEER0[STEER0.length - 1];
+      V.candEls.forEach((c, i) => {
+        c.p.setAttribute('stroke-dashoffset', 1 - ease(seg(t, .46 + i * .02, .56 + i * .02)));
+        c.p.setAttribute('class', 'cand' + (t > .62 && c.c.rej ? ' rej' : '') + (t > .7 && c.c.pick ? ' pick' : ''));
+        if (c.x) c.x.setAttribute('opacity', seg(t, .62, .66));
+        c.p.style.opacity = t > .7 && !c.c.pick ? .35 : 1;
+      });
+      const pick = V.candEls.find(c => c.c.pick);
+      if (t > .7) { V.chosenLbl.setAttribute('x', pick.e[0] - 14); V.chosenLbl.setAttribute('y', pick.e[1] - 10); V.chosenLbl.setAttribute('text-anchor', 'end'); V.chosenLbl.setAttribute('opacity', seg(t, .7, .74)); }
+      const holder = beat ? HOLDER2 : HOLDER1;
+      const route = [o, [o[0] + 12, o[1] - 42], pick.e, [holder[0], pick.e[1] - 2], holder];
+      const kR = ease(seg(t, .76, .98));
+      if (t > .76) { V.pathOurs.setAttribute('d', pathD(route)); V.pathOurs.setAttribute('pathLength', 1); V.pathOurs.setAttribute('stroke-dasharray', '1 1'); V.pathOurs.setAttribute('stroke-dashoffset', 1 - kR); pod = along(route, kR); }
+    } else V.candEls.forEach(c => { c.p.setAttribute('stroke-dashoffset', 1); if (c.x) c.x.setAttribute('opacity', 0); });
+    V.pod.setAttribute('transform', `translate(${pod[0]},${pod[1]})`);
+    const typed = step === 2 ? seg(t, .05, .8) : step > 2 ? 1 : 0;
+    const total = CODE.reduce((a, l) => a + l.reduce((b, p) => b + p[1].length, 0), 0);
+    let budget = Math.round(typed * total);
+    V.codeLines.forEach(l => l.parts.forEach(([, s], j) => { const n = Math.max(0, Math.min(s.length, budget)); l.spans[j].textContent = s.slice(0, n); budget -= n; }));
+    V.flash.setAttribute('opacity', step === 4 ? .2 * Math.sin(Math.PI * seg(t, .42, .62)) : 0);
+    V.curve.setAttribute('stroke-dashoffset', step === 3 ? 1 - ease(seg(t, 0, .45)) : step > 3 ? 0 : 1);
+    V.winPre.setAttribute('opacity', step === 3 ? seg(t, .3, .45) : step > 3 ? 1 : 0);
+    V.winHum.setAttribute('opacity', step === 3 ? seg(t, .35, .5) : step > 3 ? 1 : 0);
+    V.tau.setAttribute('opacity', step === 3 ? seg(t, .55, .7) : step > 3 ? 1 : 0);
+    V.chartLbl.setAttribute('opacity', step === 3 ? seg(t, .5, .6) : step > 3 ? 1 : 0);
+    if (step === 4) {
+      const r2 = t > .6;
+      V.round.textContent = r2 ? 'round 2' : 'round 1';
+      V.rows[0].textContent = t < .12 ? '' : r2 ? (t > .7 ? '✓' : '') : '✕';
+      V.rows[0].setAttribute('class', 'lab ' + (r2 ? 'ok' : 'bad'));
+      V.rows[1].textContent = t < .22 ? '' : r2 ? (t > .78 ? '✓' : '') : '✓';
+      V.rows[1].setAttribute('class', 'lab ok');
+      V.verdict.textContent = r2 ? 'accepted' : 'refine correction ↺';
+      V.verdict.setAttribute('class', 'lab ' + (r2 ? 'ok' : 'bad'));
+      V.verdict.setAttribute('opacity', r2 ? seg(t, .82, .9) : seg(t, .3, .38));
+    } else if (step === 5) { V.round.textContent = ''; V.rows.forEach(r => { r.textContent = '✓'; r.setAttribute('class', 'lab ok'); }); V.verdict.textContent = 'accepted'; V.verdict.setAttribute('opacity', 1); V.verdict.setAttribute('class', 'lab ok'); }
+    else { V.round.textContent = ''; V.rows.forEach(r => r.textContent = ''); V.verdict.setAttribute('opacity', 0); }
+  }
+
+  const stepsBox = $('.method-steps', section), cap = $('.method-caption', section);
+  let state = { step: 0, t: 0 }, playing = !reduced, visible = false, lastTs = null;
+  const buttons = STEPS.map((s, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'method-step'; b.innerHTML = `<span class="n">${i + 1} </span>${s.name}<span class="prog"><i></i></span>`; b.addEventListener('click', () => { state = { step: i, t: reduced || !playing ? 1 : 0 }; render(); }); stepsBox.appendChild(b); return b; });
+  const pauseBtn = document.createElement('button'); pauseBtn.type = 'button'; pauseBtn.className = 'method-pause'; pauseBtn.textContent = 'Pause'; stepsBox.appendChild(pauseBtn);
+  pauseBtn.addEventListener('click', () => { playing = !playing; pauseBtn.textContent = playing ? 'Pause' : 'Play'; lastTs = null; });
+  if (reduced) { pauseBtn.textContent = 'Play'; state.t = 1; }
+  function render() {
+    const tt = clamp(state.t);
+    paint(views.wide, state.step, tt); paint(views.tall, state.step, tt);
+    buttons.forEach((b, i) => { if (i === state.step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); b.querySelector('i').style.width = (i < state.step ? 100 : i === state.step ? tt * 100 : 0) + '%'; });
+    const c = STEPS[state.step].cap; if (cap.innerHTML !== c) cap.innerHTML = c;
+  }
+  function tick(ts) {
+    if (playing && visible) {
+      if (lastTs != null) { const ms = STEPS[state.step].ms, e2 = state.t * ms + (ts - lastTs); state.t = e2 / ms; if (e2 > ms + HOLD) state = { step: (state.step + 1) % STEPS.length, t: 0 }; }
+      lastTs = ts; render();
+    } else lastTs = null;
+    requestAnimationFrame(tick);
+  }
+  onView($('.method-anim', section), vis => { visible = vis; }, .25);
+  render(); requestAnimationFrame(tick);
+});
+
+/* ============ rounds: one correction per round, programs accumulate ============ */
+guard('rounds', () => {
+  const fig = $('.rounds'), grid = $('.rounds-grid', fig), lib = $('.lib', fig), now = $('#roundNow');
+  // The three coffee-pod correction types, worded as in the experiment videos' labels.
+  const LIB = [['C1', 'lid & body'], ['C2', 'release'], ['C3', 'behind lid']];
+  const SAID = ['Avoid colliding the pod with the coffee machine lid and body.', 'Open the gripper once the pod is over the filter holder.', 'Move behind the coffee machine lid.'];
+  const S = [28, 121], CARRY = [S, [36, 96], [70, 82], [100, 77]];
+  const over = dx => [[100 + dx * .4, 77], [110 + dx, 50], [130 + dx, 36], [146 + dx, 36]];
+  const H = dx => [146 + dx, 55];
+  // segments drawn in order: [points, class, tag, free]; free = the arm moves on after releasing the pod
+  const CARDS = [
+    { title: 'Round 1', uses: 0, segs: [[[...CARRY, [124, 72]], '']], fail: { at: [127, 72], kind: 'hit' },
+      fix: [[100, 77], [110, 50], [130, 36], [146, 36], [146, 55]] },
+    { title: 'Round 2', uses: 1, segs: [[CARRY, ''], [over(0), 'st', ['C1', [104, 44]]], [[[146, 36], [146, 41]], '']], fail: { at: [161, 43], kind: 'hit' },
+      fix: [[146, 41], [146, 55]], fixTag: ['open', [151, 61]] },
+    { title: 'Round 3', uses: 2,
+      segs: [[CARRY, ''], [over(0), 'st', ['C1', [104, 44]]], [[[146, 36], H(0)], 'st', ['C2', [155, 47]]], [[H(0), [146, 31], [157, 31]], '', null, true]],
+      fail: { at: [160, 31], kind: 'hit' }, fix: [[146, 31], [149, 16], [178, 16], [181, 30]], fixFree: true, fixTag: ['behind', [171, 47]] },
+    { title: 'After 3 rounds', final: true, uses: 3, dx: -24, closeLid: true,
+      segs: [[CARRY, ''], [over(-24), 'st', ['C1', [84, 44]]], [[[122, 36], H(-24)], 'st', ['C2', [131, 47]]], [[H(-24), [125, 16], [154, 16], [157, 30]], 'st', ['C3', [163, 46]], true]],
+      ok: [188, 62] },
+  ];
+  const libChips = LIB.map(([c, name]) => { const e = document.createElement('span'); e.className = 'chip off'; e.textContent = `${c} · ${name}`; lib.appendChild(e); return e; });
+  const drawGrip = g => { // the gripper alone, after it has let go of the pod
+    el('rect', { x: -6, y: -48, width: 12, height: 13, rx: 3, class: 'g-link' }, g); el('rect', { x: -9, y: -36, width: 18, height: 4, rx: 1, class: 'g-flange' }, g);
+    el('rect', { x: -16, y: -32, width: 32, height: 12, rx: 4, class: 'g-hand' }, g);
+    el('rect', { x: -17.5, y: -21, width: 5, height: 17, rx: 2, class: 'g-finger' }, g); el('rect', { x: 12.5, y: -21, width: 5, height: 17, rx: 2, class: 'g-finger' }, g);
+  };
+  const len = pts => pts.slice(1).reduce((a, p, i) => a + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
+  const pD = pts => 'M' + pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' L');
+  const cards = CARDS.map((C, i) => {
+    const card = document.createElement('div'); card.className = 'round' + (C.final ? ' final' : '');
+    const using = C.uses ? LIB.slice(0, C.uses).map(([c]) => `<span class="chip on">${c}</span>`).join('') : '<span>no corrections yet</span>';
+    const said = C.final ? '<p class="said-r ok">✓ loads the pod and closes the lid, machine moved</p>' : `<p class="said-r">“${SAID[i]}”</p>`;
+    const learn = C.final ? '' : `<p class="learn">learns <span class="chip">${LIB[i][0]} · ${LIB[i][1]}</span></p>`;
+    card.innerHTML = `<h3>${C.title}<span>${C.final ? 'machine moved' : C.uses + ' program' + (C.uses === 1 ? '' : 's')}</span></h3>
+      <svg viewBox="6 -6 208 144" role="img" aria-label="${C.final ? 'After three rounds, with all three programs, the run loads the pod and closes the lid in a scene where the machine has moved.' : `Round ${i + 1}: the run is steered by ${C.uses} program${C.uses === 1 ? '' : 's'} and fails at a new point; the human corrects it.`}"></svg>
+      <div class="using">${using}</div>${said}${learn}`;
+    grid.appendChild(card);
+    const svg = $('svg', card);
+    drawTable(svg, svg, 6, 214, 128, 10, 'gh-r' + i);
+    if (C.final) el('rect', { x: 125, y: 61, width: 48, height: 67, rx: 3, class: 'ghost' }, svg);
+    const m = el('g', { transform: `translate(${C.dx || 0},0)` }, svg); drawMachine(m, 128, 128, .5);
+    const lid = C.closeLid ? m.querySelector('g[transform="translate(84,-133) rotate(-98)"]') : null;
+    el('circle', { cx: S[0], cy: S[1] + 4, r: 2.5, class: 'start' }, svg);
+    const segs = C.segs.map(([pts, cls, tag, free]) => {
+      const path = el('path', { d: pD(pts), class: 'trace' + (cls ? ' ' + cls : ''), pathLength: 1, 'stroke-dasharray': cls === 'unk' ? null : '1 1' }, svg);
+      if (cls === 'unk') path.setAttribute('stroke-dasharray', '3 4');
+      const t = tag ? el('text', { x: tag[1][0], y: tag[1][1], class: 'tag', opacity: 0 }, svg, tag[0]) : null;
+      return { pts, path, t, L: len(pts), cls, free };
+    });
+    let fail = null, fix = null, fixTag = null, ok = null;
+    if (C.fix) { fix = el('path', { d: pD(C.fix), class: 'trace hum', pathLength: 1, 'stroke-dasharray': '1 1' }, svg); }
+    if (C.fixTag) fixTag = el('text', { x: C.fixTag[1][0], y: C.fixTag[1][1], class: 'tag hum', opacity: 0 }, svg, C.fixTag[0]);
+    if (C.fail) {
+      fail = el('g', { class: C.fail.kind, transform: `translate(${C.fail.at})`, opacity: 0 }, svg); el('circle', { r: 5.5 }, fail);
+      if (C.fail.kind === 'hit') el('path', { d: 'M-2.8,-2.8L2.8,2.8M2.8,-2.8L-2.8,2.8' }, fail);;
+    }
+    if (C.ok) { ok = el('g', { class: 'ok', transform: `translate(${C.ok})`, opacity: 0 }, svg); el('circle', { r: 6 }, ok); el('path', { d: 'M-2.6,0 L-.6,2.2 L2.8,-2.2' }, ok); }
+    const released = C.segs.some(g => g[3]);
+    const podOnly = released ? el('g', { opacity: 0 }, svg) : null; if (podOnly) drawPod(el('g', { transform: 'scale(.6)' }, podOnly), false);
+    const grip = released ? el('g', { opacity: 0 }, svg) : null; if (grip) drawGrip(el('g', { transform: 'scale(.6)' }, grip));
+    const pod = el('g', {}, svg); const pg = el('g', { transform: 'scale(.6)' }, pod); drawPod(pg);
+    return { C, card, segs, fail, fix, fixTag, ok, pod, podOnly, grip, lid, said: $('.said-r', card), learn: $('.learn', card), total: segs.reduce((a, g) => a + g.L, 0) };
+  });
+  const D = 2700, DRAW = 1300;
+  const at = (pts, k) => { let r = k * len(pts); for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); if (r <= d) { const u = d ? r / d : 0; return [lerp(pts[i - 1][0], pts[i][0], u), lerp(pts[i - 1][1], pts[i][1], u)]; } r -= d; } return pts[pts.length - 1]; };
+  function paintCard(K, e) { // e: ms into this card; Infinity = finished
+    const k = clamp(e / DRAW); let r = k * K.total, pos = K.segs[0].pts[0], gpos = null;
+    K.segs.forEach(g => { const u = clamp(r / g.L); r -= g.L; g.path.setAttribute('stroke-dashoffset', 1 - u); if (g.t) g.t.setAttribute('opacity', u > .2 ? 1 : 0); if (u > 0) { if (g.free) gpos = at(g.pts, u); else pos = at(g.pts, u); } });
+    if (K.fail) K.fail.setAttribute('opacity', seg(e, DRAW, DRAW + 150));
+    if (K.fix) { const u = ease(seg(e, DRAW + 200, DRAW + 700)); K.fix.setAttribute('stroke-dashoffset', 1 - u); if (u > 0) { if (K.C.fixFree) gpos = at(K.C.fix, u); else pos = at(K.C.fix, u); } }
+    if (K.fixTag) K.fixTag.setAttribute('opacity', seg(e, DRAW + 600, DRAW + 750));
+    // after release the pod stays in the holder and the bare gripper moves on
+    if (K.grip) { const rel = !!gpos; K.pod.setAttribute('opacity', rel ? 0 : 1); K.grip.setAttribute('opacity', rel ? 1 : 0); K.podOnly.setAttribute('opacity', rel ? 1 : 0);
+      if (rel) { K.grip.setAttribute('transform', `translate(${gpos[0]},${gpos[1]})`); K.podOnly.setAttribute('transform', `translate(${pos[0]},${pos[1]})`); } }
+    if (K.lid) { const c = ease(seg(e, DRAW + 50, DRAW + 600)); K.lid.setAttribute('transform', `translate(84,-133) rotate(${-98 - 82 * c})`); if (K.podOnly && c > .8) K.podOnly.setAttribute('opacity', 0); }
+    if (K.ok) K.ok.setAttribute('opacity', seg(e, DRAW + 550, DRAW + 750));
+    K.pod.setAttribute('transform', `translate(${pos[0]},${pos[1]})`);
+    K.said.style.opacity = K.C.final ? seg(e, DRAW, DRAW + 300) : seg(e, DRAW + 400, DRAW + 800);
+    if (K.learn) K.learn.style.opacity = seg(e, DRAW + 800, DRAW + 1100);
+  }
+  let raf = 0, t0 = 0;
+  function render(t) {
+    const cur = Math.min(cards.length - 1, Math.floor(t / D));
+    cards.forEach((K, i) => { K.card.classList.toggle('wait', i > cur); paintCard(K, i < cur ? Infinity : i === cur ? t - i * D : -1); });
+    libChips.forEach((c, i) => c.classList.toggle('off', !(i < cur || (i === cur && t - cur * D > DRAW + 900))));
+    now.textContent = cards[cur].C.final ? 'after 3 rounds: machine moved' : `round ${cur + 1} of 3`;
+  }
+  function frame(ts) { const t = Math.max(0, ts - t0); render(t); if (t < cards.length * D) raf = requestAnimationFrame(frame); }
+  function play() { cancelAnimationFrame(raf); t0 = performance.now(); raf = requestAnimationFrame(frame); }
+  function still() { cancelAnimationFrame(raf); render(cards.length * D); }
+  let seen = false;
+  onView(fig, vis => { if (vis && !seen) { seen = true; reduced ? still() : play(); } }, .3);
+  $('#roundsReplay').addEventListener('click', () => reduced ? still() : play());
+  still();
+});
+
+/* ============ charts ============ */
+const DATA = {
+  sim: { methods: [['π0.5', '--base'], ['HG-DAgger*', '--hgd'], ['OLAF', '--olaf'], ['VLS', '--vls'], ['OopsieRecover', '--ours']],
+    L0: [[.06, 'b'], [.40, 'a'], [.09, 'b'], [.01, 'c'], [.50, 'a']], L1: [[.02, 'b'], [.03, 'b'], [.01, 'b'], [.01, 'b'], [.32, 'a']], L2: [[.05, 'b'], [.01, 'b'], [.01, 'b'], [.02, 'b'], [.15, 'a']] },
+  real: { methods: [['π0.5', '--base'], ['HG-DAgger*', '--hgd'], ['OopsieRecover', '--ours']],
+    L0: [[.36, 'b'], [.14, 'c'], [.67, 'a']], L1: [[.36, 'a'], [.12, 'b'], [.58, 'a']], L2: [[.34, 'b'], [.07, 'c'], [.58, 'a']] },
+};
+function barChart(svg) {
+  const d = DATA[svg.dataset.set], rows = d[svg.dataset.lvl];
+  const col = n => getComputedStyle(svg).getPropertyValue(n).trim();
+  let bars = [], lastW = 0;
+  function draw() {
+    const W = Math.round(Math.max(280, svg.clientWidth || 380)); if (W === lastW) return; lastW = W;
+    svg.replaceChildren(); bars = [];
+    const rowH = 30, m = { t: 6, r: 64, b: 26, l: 112 }, H = m.t + rows.length * rowH + m.b;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const iw = W - m.l - m.r, x = v => m.l + v * iw;
+    [0, .25, .5, .75, 1].forEach(t => { el('line', { x1: x(t), x2: x(t), y1: m.t, y2: H - m.b, class: 'grid' }, svg); el('text', { x: x(t), y: H - 8, class: 'tick', 'text-anchor': 'middle' }, svg, Math.round(t * 100) + '%'); });
+    el('line', { x1: m.l, x2: m.l, y1: m.t, y2: H - m.b, class: 'baseline' }, svg);
+    rows.forEach(([v, cld], i) => {
+      const [name, c] = d.methods[i], ours = name === 'OopsieRecover', y = m.t + i * rowH + 7;
+      el('text', { x: m.l - 10, y: y + 12, class: 'mlabel', 'text-anchor': 'end', 'font-weight': ours ? 700 : 400, fill: ours ? col('--ours') : col('--ink') }, svg, name);
+      const r = el('rect', { x: m.l, y, height: 16, width: 0, fill: col(c) }, svg);
+      const lab = el('text', { x: m.l + 6, y: y + 12.5, class: 'vlabel', fill: ours ? col('--ours') : col('--ink') }, svg, Math.round(v * 100) + '%');
+      const cl = el('text', { x: m.l + 6, y: y + 12.5, class: 'cld' }, svg, cld);
+      bars.push({ r, lab, cl, v, w: Math.max(2, v * iw), x0: m.l });
+    });
+    set(1);
+  }
+  function set(k) { bars.forEach((b, i) => { const kk = ease(clamp(k * 1.25 - i * .06)); b.r.setAttribute('width', b.w * kk); const lx = b.x0 + b.w * kk + 6; b.lab.setAttribute('x', lx); b.cl.setAttribute('x', lx + b.lab.getComputedTextLength() + 5); b.lab.setAttribute('opacity', kk > .05 ? 1 : 0); b.cl.setAttribute('opacity', kk > .9 ? 1 : 0); }); }
+  draw(); new ResizeObserver(draw).observe(svg);
+  return { play() { if (reduced) return set(1); const t0 = performance.now(); const f = now => { const k = clamp((now - t0) / 1100); set(k); if (k < 1) requestAnimationFrame(f); }; set(0); requestAnimationFrame(f); } };
+}
+guard('bars', () => {
+  ['simFig', 'realFig'].forEach(id => {
+    const fig = document.getElementById(id), charts = $$('svg.chart', fig).map(barChart);
+    let seen = false; onView(fig, vis => { if (vis && !seen) { seen = true; charts.forEach(c => c.play()); } }, .35);
+    $('[data-replay]', fig).addEventListener('click', () => charts.forEach(c => c.play()));
+  });
+});
+guard('line', () => {
+  const svg = $('#lineChart');
+  const OURS = [[0, .04], [1, .08], [2, .20], [3, .32], [4, .28], [5, .36], [6, .56], [7, .76], [8, .88], [9, .76], [10, .76], [20, .72], [30, .80]];
+  const HGD = [[0, .04], [10, 0], [20, .16], [30, .28]];
+  let parts = [], lastW = 0;
+  function draw() {
+    const W = Math.round(Math.max(300, svg.clientWidth || 700)); if (W === lastW) return; lastW = W;
+    svg.replaceChildren(); parts = [];
+    const H = Math.round(Math.min(320, Math.max(230, W * .5))), m = { t: 12, r: 150, b: 40, l: 44 };
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const iw = W - m.l - m.r, ih = H - m.t - m.b, x = v => m.l + v / 30 * iw, y = v => m.t + ih - v * ih;
+    [0, .25, .5, .75, 1].forEach(t => { el('line', { x1: m.l, x2: m.l + iw, y1: y(t), y2: y(t), class: 'grid' }, svg); el('text', { x: m.l - 8, y: y(t) + 4, class: 'tick', 'text-anchor': 'end' }, svg, Math.round(t * 100) + '%'); });
+    [0, 5, 10, 15, 20, 25, 30].forEach(t => el('text', { x: x(t), y: H - 20, class: 'tick', 'text-anchor': 'middle' }, svg, t));
+    el('text', { x: m.l + iw / 2, y: H - 2, class: 'axis-label', 'text-anchor': 'middle' }, svg, 'corrections');
+    el('line', { x1: m.l, x2: m.l + iw, y1: y(0), y2: y(0), class: 'baseline' }, svg);
+    const series = (pts, c, label, dash) => {
+      const p = el('path', Object.assign({ d: 'M' + pts.map(([a, b]) => `${x(a)},${y(b)}`).join(' L'), class: 'line', stroke: css(c), 'stroke-dasharray': dash || 'none' }, dash ? {} : { pathLength: 1 }), svg);
+      const dots = pts.map(([a, b]) => el('circle', { cx: x(a), cy: y(b), r: 3.4, class: 'ptc', stroke: css(c) }, svg));
+      const l = pts[pts.length - 1];
+      const t = el('text', { x: x(l[0]) + 10, y: y(l[1]) + 4, class: 'end-label', fill: css(c) }, svg, `${label} ${Math.round(l[1] * 100)}%`);
+      parts.push({ p, dots, t, dash: !!dash });
+    };
+    series(HGD, '--hgd', 'HG-DAgger*', '7 4'); series(OURS, '--ours', 'OopsieRecover');
+    set(1);
+  }
+  function set(k) { parts.forEach(s => { if (!s.dash) { s.p.setAttribute('stroke-dasharray', '1 1'); s.p.setAttribute('stroke-dashoffset', 1 - k); } else s.p.style.opacity = k; s.dots.forEach((dd, i) => dd.setAttribute('opacity', k >= i / (s.dots.length - 1 || 1) * .98 ? 1 : 0)); s.t.setAttribute('opacity', k >= .98 ? 1 : 0); }); }
+  draw(); new ResizeObserver(draw).observe(svg);
+  const play = () => { if (reduced) return set(1); const t0 = performance.now(); const f = now => { const k = clamp((now - t0) / 1600); set(ease(k)); if (k < 1) requestAnimationFrame(f); }; set(0); requestAnimationFrame(f); };
+  let seen = false; onView(svg, vis => { if (vis && !seen) { seen = true; play(); } }, .4);
+  $('#lineReplay').addEventListener('click', play);
+});
+
+/* ============ real-robot experiments ============ */
+/* ============ citation ============ */
+guard('cite', () => {
+  const b = $('#copyBib'), pre = $('#bibtex');
+  b.addEventListener('click', () => navigator.clipboard.writeText(pre.textContent)
+    .then(() => { b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy', 1500); })
+    .catch(() => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Press ⌘C'; }));
+});
+
+guard('experiments', () => {
+  $$('.experiment').forEach(a => {
+    const key = a.dataset.task, trio = $('.trio', a), row = $('.levels .row', a), title = a.querySelector('h3').textContent;
+    [['base', 'π0.5', 'bad', 'failure'], ['hgdagger', 'HG-DAgger*', 'bad', 'failure'], ['ours', 'OopsieRecover', 'ok', 'success']].forEach(([r, name, cls, verdict]) => {
+      const id = `v-${key}-${r}`, f = document.createElement('figure');
+      f.innerHTML = `<div class="shot sq"><video id="${id}" muted playsinline loop preload="none" data-src="assets/v/${key}-${r}.mp4" poster="assets/v/${key}-${r}.jpg" aria-label="${name}: ${title}"></video><span class="verdict ${cls}">${verdict}</span><button class="open" data-open="${id}" data-title="${title} · ${name}" aria-label="Open larger: ${name}"><span aria-hidden="true">↗</span></button></div><figcaption>${r === 'ours' ? '<b class="m ours">OopsieRecover</b>' : name}</figcaption>`;
+      trio.appendChild(f); window.__watch($('video', f));
+    });
+    ['L0', 'L1', 'L2'].forEach((l, i) => { const f = document.createElement('figure'); f.innerHTML = `<img src="assets/img/${key}-${l}.jpg" alt="${title}, ${l}" loading="lazy"><figcaption>${l} ${['same state', 'new poses', 'new scene'][i]}</figcaption>`; row.appendChild(f); });
+  });
+});
+
+
+})();
+</script>
+</body>
+</html>
