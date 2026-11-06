@@ -15,8 +15,16 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&family=Roboto:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap">
 <style>
+@font-face{font-family:"OR Text";font-weight:300;font-style:normal;src:local("HelveticaNeue-Light"),local("Helvetica Neue Light")}
+@font-face{font-family:"OR Text";font-weight:300;font-style:italic;src:local("HelveticaNeue-LightItalic"),local("Helvetica Neue Light Italic")}
+@font-face{font-family:"OR Text";font-weight:400;font-style:normal;src:local("HelveticaNeue"),local("Helvetica Neue")}
+@font-face{font-family:"OR Text";font-weight:400;font-style:italic;src:local("HelveticaNeue-Italic"),local("Helvetica Neue Italic")}
+@font-face{font-family:"OR Text";font-weight:500;font-style:normal;src:local("HelveticaNeue-Medium"),local("Helvetica Neue Medium")}
+@font-face{font-family:"OR Text";font-weight:700;font-style:normal;src:local("HelveticaNeue-Bold"),local("Helvetica Neue Bold")}
+@font-face{font-family:"OR Head";font-weight:400;font-style:normal;src:local("Helvetica"),local("Helvetica Regular")}
+@font-face{font-family:"OR Head";font-weight:700;font-style:normal;src:local("Helvetica-Bold"),local("Helvetica Bold")}
 :root{
   color-scheme:light;
   --paper:#ffffff; --ink:#141414; --ink-2:#555555; --rule:#dcdcdc; --wash:#f7f7f5; --grid:#ececec;
@@ -27,8 +35,12 @@
   --hgd:#7a5c42; --olaf:#cda780; --olaf-text:#8a6a3e; --vls:#565d61;
   --scene:#e9e8e2; --scene-line:#8a9095;
   --m-body:#f6f6f3; --m-shade:#e4e4de; --m-line:#7d848a; --m-dark:#2b2f33; --m-steel:#c3c7cb; --m-glass:#cfdde6; --m-coffee:#6b4632; --gingham:#e8b84a;
-  --body:"Helvetica Neue",Helvetica,Arial,sans-serif; /* text: Helvetica Light (300) */
-  --head:Helvetica,"Helvetica Neue",Arial,sans-serif; /* headings: Helvetica (400) */
+  /* Text: Helvetica Neue Light (300) where installed (Apple devices), Roboto Light elsewhere.
+     Headings: Helvetica (400) where installed, Roboto elsewhere. The Helvetica faces are named exactly
+     through local() in "OR Text"/"OR Head": plain family names get aliased to Arial or look-alikes on
+     machines without Helvetica, which would stop the stack before it reaches Roboto. */
+  --body:"OR Text",Roboto,Arial,sans-serif;
+  --head:"OR Head","OR Text",Roboto,Arial,sans-serif;
   --mono:Inconsolata,ui-monospace,Menlo,Consolas,monospace;
   --col:720px; --wide:1280px; --nav:36px;
 }
@@ -474,7 +486,7 @@ footer div{max-width:var(--wide);margin:0 auto;display:flex;flex-wrap:wrap;justi
 </section>
 
 <!-- ================= REAL ROBOT (film) ================= -->
-<section class="section film wide gut" id="robot" aria-labelledby="robot-title">
+<section class="section wide gut" id="robot" aria-labelledby="robot-title">
   <p class="kicker">Real robot<span class="progress" role="img" aria-label="Part 4 of 4"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></p>
   <h2 id="robot-title">Steering a frozen π<sub>0.5</sub> on a real robot</h2>
   <p>DROID hardware with the official π<sub>0.5</sub> DROID checkpoint, three to six corrections per task. Pooled over three tasks, <b class="m ours">OopsieRecover</b> raises task progress from 35% to 61%. <b class="m hgd">HG-DAgger*</b> fine-tunes on the same interventions and does worse than the base policy.</p>
